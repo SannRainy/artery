@@ -1,61 +1,78 @@
-const fastify = require('fastify')({ logger: true })
-const fastifyJwt = require('@fastify/jwt')
-const fastifyCors = require('@fastify/cors')
-const knexConfig = require('./knexfile')
-const knex = require('knex')(knexConfig.development)
+import fastify from 'fastify';
+import fastifyCors from '@fastify/cors';
+import fastifyJwt from '@fastify/jwt';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Attach knex to fastify instance
-fastify.decorate('knex', knex)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Register plugins
-fastify.register(fastifyCors, {
-  origin: ['http://localhost:5173', 'http://localhost:3001'], // sesuaikan dengan frontend
+const app = fastify({ logger: true });
+
+// CORS Configuration
+app.register(fastifyCors, {
+  origin: [
+    'http://localhost:3000',
+    'https://your-production-domain.com'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-})
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+});
 
-fastify.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || 'your-secret-key',
-  sign: { expiresIn: '7d' }
-})
+// JWT Authentication
+app.register(fastifyJwt, {
+  secret: process.env.JWT_SECRET || 'your-strong-secret-key',
+  sign: { expiresIn: '1h' }
+});
 
-// Authentication decorator
-fastify.decorate('authenticate', async (request, reply) => {
+// Proxy Endpoint
+app.get('/proxy/aitopia', async (request, reply) => {
   try {
-    await request.jwtVerify()
-  } catch (err) {
-    reply.code(401).send({ message: 'Unauthorized' })
+    const response = await fetch('https://extensions.aitopia.ai/ai/prompts', {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': request.headers.authorization || ''
+      }
+    });
+    
+    if (!response.ok) throw new Error('Proxy request failed');
+    
+    const data = await response.json();
+    reply.send(data);
+  } catch (error) {
+    app.log.error(error);
+    reply.code(502).send({ error: 'Bad Gateway' });
   }
-})
+});
 
-// Register routes
-fastify.register(require('./routes/users'), { prefix: '/api/users' })
-fastify.register(require('./routes/pins'), { prefix: '/api/pins' })
-fastify.register(require('./routes/boards'), { prefix: '/api/boards' })
-fastify.register(require('./routes/tags'), { prefix: '/api/tags' })
+// Static files (optional)
+app.register(fastifyStatic, {
+  root: path.join(__dirname, 'public'),
+  prefix: '/client/public/',
+});
 
-// Health check endpoint
-fastify.get('/health', async () => {
-  return { status: 'ok', db: 'connected' }
-})
+// Health check
+app.get('/health', async () => ({ status: 'ok' }));
 
 // Start server
 const start = async () => {
   try {
-    await fastify.listen({
-      port: process.env.PORT || 3000,
+    await app.listen({
+      port: process.env.PORT || 3001,
       host: '0.0.0.0'
-    })
-    fastify.log.info(`Server listening on ${fastify.server.address().port}`)
+    });
   } catch (err) {
-    fastify.log.error(err)
-    process.exit(1)
+    app.log.error(err);
+    process.exit(1);
   }
-}
+};
 
-fastify.get('/', async (request, reply) => {
-  return { message: 'Backend is running!' }
-})
+const PORT = process.env.PORT || 3001; // Change default to 5000 or another port
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-start()
+start();
