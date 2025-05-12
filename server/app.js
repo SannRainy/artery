@@ -9,9 +9,10 @@ fastify.decorate('knex', knex)
 
 // Register plugins
 fastify.register(fastifyCors, {
-  origin: true,
+  origin: ['http://localhost:5173', 'http://localhost:3001'], // sesuaikan dengan frontend
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 })
 
 fastify.register(fastifyJwt, {
@@ -52,5 +53,9 @@ const start = async () => {
     process.exit(1)
   }
 }
+
+fastify.get('/', async (request, reply) => {
+  return { message: 'Backend is running!' }
+})
 
 start()

@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-50;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary rounded-full;
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Masonry layout adjustments */
+.masonry-grid {
+  display: flex;
+  margin-left: -1rem;
+  width: auto;
+}
+
+.masonry-grid_column {
+  padding-left: 1rem;
+  background-clip: padding-box;
+}
+
+/* Pin hover effects */
+.pin-hover-overlay {
+  @apply absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300;
+}
