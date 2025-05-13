@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { login as authLogin, register as authRegister, getCurrentUser } from '../services/auth'
 
@@ -9,19 +9,28 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const userData = await getCurrentUser()
-        setUser(userData)
-      } catch (err) {
-        setUser(null)
-      } finally {
-        setLoading(false)
-      }
+  const loadUser = useCallback(async () => {
+    const token = localStorage.getItem('token')
+    
+    if (!token) {
+      setLoading(false)
+      return
     }
-    loadUser()
+
+    try {
+      const userData = await getCurrentUser()
+      setUser(userData)
+    } catch (err) {
+      localStorage.removeItem('token')
+      setUser(null)
+    } finally {
+      setLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    loadUser()
+  }, [loadUser])
 
   const login = async (email, password) => {
     try {
@@ -31,6 +40,7 @@ export const AuthProvider = ({ children }) => {
       router.push('/')
     } catch (err) {
       console.error('Login failed', err)
+      throw err // Re-throw untuk ditangkap di form
     }
   }
 
@@ -42,17 +52,28 @@ export const AuthProvider = ({ children }) => {
       router.push('/')
     } catch (err) {
       console.error('Registration failed', err)
+      throw err
     }
   }
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token')
     setUser(null)
     router.push('/login')
+  }, [router])
+
+  const value = {
+    user,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    register,
+    logout,
+    refreshUser: loadUser
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

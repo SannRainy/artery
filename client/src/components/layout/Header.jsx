@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContexts'
 import { FiSearch, FiPlus, FiUser } from 'react-icons/fi'
 import Button from '../ui/Button'
 

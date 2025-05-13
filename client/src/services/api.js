@@ -1,19 +1,9 @@
 // client/src/services/api.js
 import axios from 'axios'
 
-// Gunakan baseURL dari environment, fallback ke localhost saat development
-
-// Buat instance axios
-
-const baseURL = process.env.NEXT_PUBLIC_API_URL || '/api';
-
 const api = axios.create({
-  baseURL,
-  withCredentials: true, // penting jika menggunakan cookie auth di masa depan
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api',
+});
 
 // Request Interceptor: tambahkan token JWT dari localStorage
 api.interceptors.request.use(
@@ -31,6 +21,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    console.error('Error response:', error.response);  // Menampilkan detail error
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token')

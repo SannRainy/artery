@@ -1,5 +1,5 @@
 import { useForm } from 'react-hook-form'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContexts'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Link from 'next/link'

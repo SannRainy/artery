@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import RegisterForm from '../components/Auth/RegisterForm'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/AuthContexts'
 
 export default function RegisterPage() {
   const router = useRouter()
