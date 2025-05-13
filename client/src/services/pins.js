@@ -1,23 +1,21 @@
-import api from './api';
+import api from './api';  // Pastikan api sudah dikonfigurasi dengan benar
 
-// Fetch Pins with pagination
 export const getPins = async (page = 1, limit = 30) => {
   try {
+    const token = localStorage.getItem('token');
     const response = await api.get('/pins', {
-      params: { page, limit },
+      headers: {
+        Authorization: `Bearer ${token}`  // Pastikan token dikirim di header
+      },
+      params: { page, limit }
     });
-    
-    // Pastikan data yang diterima memiliki struktur yang benar
-    if (response.status === 200) {
-      return response.data.data;
-    } else {
-      throw new Error('Failed to fetch pins.');
-    }
+    return response.data;  // Mengembalikan data pins
   } catch (error) {
-    console.error('Failed to fetch pins:', error);
-    throw new Error('Failed to load pins, please try again later.');
+    console.error('Error fetching pins:', error.response ? error.response.data : error);
+    throw error;
   }
 };
+
 
 // Fetch a single pin by ID
 export const getPinById = async (id) => {
