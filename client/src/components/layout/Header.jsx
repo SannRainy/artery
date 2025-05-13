@@ -27,11 +27,11 @@ export default function Header() {
         <div className="flex items-center space-x-3">
           {user ? (
             <>
-              <Button variant="icon">
+              <Button variant="icon" title="Create Pin">
                 <FiPlus size={20} />
               </Button>
               <div className="relative group">
-                <button className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                <button className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center" aria-label="User menu">
                   <FiUser size={18} />
                 </button>
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
@@ -39,7 +39,11 @@ export default function Header() {
                     Profile
                   </Link>
                   <button
-                    onClick={logout}
+                    onClick={() => {
+                      if (confirm("Are you sure you want to log out?")) {
+                        logout()
+                      }
+                    }}
                     className="w-full text-left px-4 py-2 hover:bg-gray-100"
                   >
                     Logout

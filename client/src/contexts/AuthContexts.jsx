@@ -24,17 +24,25 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = async (email, password) => {
-    const { user, token } = await authLogin(email, password)
-    localStorage.setItem('token', token)
-    setUser(user)
-    router.push('/')
+    try {
+      const { user, token } = await authLogin(email, password)
+      localStorage.setItem('token', token)
+      setUser(user)
+      router.push('/')
+    } catch (err) {
+      console.error('Login failed', err)
+    }
   }
 
   const register = async (username, email, password) => {
-    const { user, token } = await authRegister(username, email, password)
-    localStorage.setItem('token', token)
-    setUser(user)
-    router.push('/')
+    try {
+      const { user, token } = await authRegister(username, email, password)
+      localStorage.setItem('token', token)
+      setUser(user)
+      router.push('/')
+    } catch (err) {
+      console.error('Registration failed', err)
+    }
   }
 
   const logout = () => {

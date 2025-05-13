@@ -14,8 +14,9 @@ export default function BoardCard({ board }) {
               >
                 <img
                   src={pin.image_url || '/images/default-pin.jpg'}
-                  alt={pin.title}
+                  alt={pin.title || 'Default Pin Image'}
                   className="w-full h-full object-cover"
+                  loading="lazy" // Lazy load images for better performance
                 />
                 {index === 3 && board.pins.length > 4 && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -34,7 +35,7 @@ export default function BoardCard({ board }) {
         <div className="p-3">
           <div className="flex justify-between items-start">
             <h3 className="font-medium">{board.title}</h3>
-            <button className="text-gray-500 hover:text-gray-700">
+            <button className="text-gray-500 hover:text-gray-700" aria-label="More options">
               <FaEllipsisH size={14} />
             </button>
           </div>

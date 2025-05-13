@@ -17,13 +17,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ✅ Middleware CORS
-app.use(cors({
-  origin: 'http://localhost:3001', // Sesuaikan dengan frontendmu
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
+app.use(cors());
 app.options('*', cors()); // ⬅️ Taruh DI SINI, setelah `app.use(cors())`
+
+app.get('/', (req, res) => {
+  res.send('API is running!');
+});
 
 app.use(express.json());
 

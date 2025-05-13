@@ -10,6 +10,7 @@ export default function BoardCreateModal({ isOpen, onClose, onBoardCreated }) {
   const { user } = useAuth()
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const onSubmit = async (data) => {
     try {
@@ -20,6 +21,7 @@ export default function BoardCreateModal({ isOpen, onClose, onBoardCreated }) {
       handleClose()
     } catch (err) {
       console.error('Error creating board:', err)
+      setErrorMessage('An error occurred while creating the board. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -27,15 +29,30 @@ export default function BoardCreateModal({ isOpen, onClose, onBoardCreated }) {
 
   const handleClose = () => {
     reset()
+    setErrorMessage('') // Clear error message on close
     onClose()
   }
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Board">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {errorMessage && (
+          <div className="text-red-600 text-sm">{errorMessage}</div>
+        )}
+
         <Input
           label="Title"
-          {...register('title', { required: 'Title is required' })}
+          {...register('title', { 
+            required: 'Title is required',
+            minLength: {
+              value: 3,
+              message: 'Title must be at least 3 characters'
+            },
+            maxLength: {
+              value: 50,
+              message: 'Title must be less than 50 characters'
+            }
+          })}
           error={errors.title}
         />
 
@@ -62,6 +79,7 @@ export default function BoardCreateModal({ isOpen, onClose, onBoardCreated }) {
             type="button"
             onClick={handleClose}
             className="bg-gray-200 hover:bg-gray-300"
+            aria-label="Cancel creating board"
           >
             Cancel
           </Button>
@@ -69,6 +87,7 @@ export default function BoardCreateModal({ isOpen, onClose, onBoardCreated }) {
             type="submit"
             className="bg-primary hover:bg-primary-dark text-white"
             disabled={isLoading}
+            aria-label="Create new board"
           >
             {isLoading ? 'Creating...' : 'Create Board'}
           </Button>

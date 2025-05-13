@@ -14,9 +14,9 @@ export default function MasonryLayout({ children, columns = 4, gap = 16 }) {
   }, [children, columns])
 
   return (
-    <div className="flex gap-4" style={{ gap }}>
+    <div className={`flex gap-[${gap}px] flex-wrap`}>
       {columnWrapper.map((items, idx) => (
-        <div key={idx} className="flex-1">
+        <div key={idx} className={`flex-1 min-w-[calc(100%/${columns})]`}>
           {items.map((item, i) => (
             <div key={i} className="mb-4">
               {item}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../contexts/AuthContexts'
 import MasonryLayout from '../components/layout/MasonryLayout'
 import PinCard from '../components/pins/PinCard'
 import PinCreateModal from '../components/pins/PinCreateModal'
@@ -12,6 +12,7 @@ export default function Home() {
   const [pins, setPins] = useState([])
   const [loading, setLoading] = useState(true)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchPins = async () => {
@@ -20,6 +21,7 @@ export default function Home() {
         setPins(data)
       } catch (err) {
         console.error(err)
+        setError('Failed to load pins. Please try again later.')
       } finally {
         setLoading(false)
       }
@@ -28,7 +30,7 @@ export default function Home() {
   }, [])
 
   const handlePinCreated = (newPin) => {
-    setPins([newPin, ...pins])
+    setPins((prevPins) => [newPin, ...prevPins])  // Efficient state update
   }
 
   return (
@@ -48,6 +50,8 @@ export default function Home() {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
+      ) : error ? (
+        <div className="text-red-500">{error}</div>  // Display error message
       ) : (
         <MasonryLayout>
           {pins.map((pin) => (

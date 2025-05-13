@@ -3,25 +3,43 @@ import { useAuth } from '../../contexts/AuthContext'
 import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Link from 'next/link'
+import { useState } from 'react'
 
 export default function LoginForm() {
   const { login } = useAuth()
   const { register, handleSubmit, formState: { errors } } = useForm()
+  const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const onSubmit = async ({ email, password }) => {
+    setLoading(true)
+    setErrorMessage('') // Reset error message
     try {
       await login(email, password)
+      // Redirect or take further action on successful login
     } catch (error) {
+      setErrorMessage('Invalid email or password') // Set error message
       console.error('Login failed:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>} {/* Error message display */}
+
       <Input
         label="Email"
         type="email"
-        {...register('email', { required: 'Email is required' })}
+        autoFocus
+        {...register('email', { 
+          required: 'Email is required', 
+          pattern: {
+            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+            message: 'Invalid email address'
+          }
+        })}
         error={errors.email}
       />
 
@@ -52,8 +70,8 @@ export default function LoginForm() {
         </div>
       </div>
 
-      <Button type="submit" className="w-full">
-        Sign in
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? 'Signing in...' : 'Sign in'}
       </Button>
 
       <div className="text-sm text-center">

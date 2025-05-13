@@ -1,21 +1,27 @@
-export const formatDate = (dateString) => {
+// Format tanggal lokal misalnya: "13 Mei 2025"
+export const formatDate = (dateString, locale = 'id-ID') => {
+  if (!dateString) return ''
   const options = { year: 'numeric', month: 'long', day: 'numeric' }
-  return new Date(dateString).toLocaleDateString(undefined, options)
+  return new Date(dateString).toLocaleDateString(locale, options)
 }
 
-export const truncateText = (text, maxLength = 100) => {
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
+// Potong teks panjang dengan batas default 100 karakter
+export const truncateText = (text = '', maxLength = 100) => {
+  if (typeof text !== 'string') return ''
+  return text.length <= maxLength ? text : text.substring(0, maxLength).trim() + '...'
 }
 
-export const getInitials = (name) => {
-  if (!name) return ''
-  return name.split(' ')
-    .map(part => part[0])
+// Ambil inisial dari nama pengguna, misal: "John Doe" → "JD"
+export const getInitials = (name = '') => {
+  if (!name.trim()) return ''
+  return name
+    .trim()
+    .split(/\s+/)
+    .map(part => part[0].toUpperCase())
     .join('')
-    .toUpperCase()
 }
 
+// Ambil dimensi gambar dari URL, fallback ke default jika error
 export const getImageDimensions = (url) => {
   return new Promise((resolve) => {
     const img = new Image()
@@ -23,22 +29,24 @@ export const getImageDimensions = (url) => {
       resolve({ width: img.width, height: img.height })
     }
     img.onerror = () => {
-      resolve({ width: 800, height: 600 }) // Default dimensions
+      resolve({ width: 800, height: 600 }) // fallback jika gagal
     }
     img.src = url
   })
 }
 
+// Fungsi debounce: tunda eksekusi hingga tidak ada input baru dalam delay ms
 export const debounce = (func, delay) => {
   let timeoutId
-  return function(...args) {
+  return function (...args) {
     clearTimeout(timeoutId)
     timeoutId = setTimeout(() => func.apply(this, args), delay)
   }
 }
 
-export const getPinterestLayout = (items, columns = 4) => {
-  const result = Array(columns).fill().map(() => [])
+// Bagi array item ke dalam kolom layout Pinterest-style
+export const getPinterestLayout = (items = [], columns = 4) => {
+  const result = Array.from({ length: columns }, () => [])
   items.forEach((item, index) => {
     result[index % columns].push(item)
   })

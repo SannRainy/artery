@@ -1,37 +1,32 @@
+import axios from 'axios'
+
+const apiUrl = 'http://localhost:3000'  // Change this to your backend API URL
+
 export default async function handler(req, res) {
   try {
-    // Validasi method
-    if (req.method !== 'GET') {
-      return res.status(405).json({ error: 'Method not allowed' })
+    // Forwarding the request to the backend API
+    const { method, body, headers } = req
+
+    // Create a configuration object for the API request
+    const config = {
+      method: method,  // Method (GET, POST, etc.)
+      url: `${apiUrl}${req.url}`,  // Proxying the URL
+      headers: {
+        ...headers,  // Forward the headers (such as authorization)
+        'Content-Type': 'application/json',
+      },
+      data: body,  // Send the request body
     }
 
-    // Forward headers yang diperlukan
-    const headers = {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
+    // Sending the request to the backend API
+    const response = await axios(config)
 
-    // Jika ada auth token
-    if (req.headers.authorization) {
-      headers['Authorization'] = req.headers.authorization
-    }
-
-    const response = await fetch('https://extensions.aitopia.ai/ai/prompts', {
-      method: req.method,
-      headers
-    })
-
-    if (!response.ok) {
-      throw new Error(`External API responded with ${response.status}`)
-    }
-
-    const data = await response.json()
-    res.status(200).json(data)
+    // Forward the response from the API back to the client
+    res.status(response.status).json(response.data)
   } catch (error) {
-    console.error('Proxy error:', error)
-    res.status(500).json({ 
-      error: 'Internal server error',
-      details: error.message 
+    // Handle errors and send them to the client
+    res.status(error.response?.status || 500).json({
+      message: error.response?.data?.message || 'Something went wrong',
     })
   }
 }
