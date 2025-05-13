@@ -1,222 +1,220 @@
 // server/routes/boards.js
 
 import express from 'express';
-const router = express.Router();
 import { authenticate } from '../middleware/auth.js';
-import knexConfig from '../knexfile.js'; // Import the knex configuration
-import knex from 'knex';
 
-const db = knex(knexConfig.development); // Initialize knex with the correct environment (development/production)
+export default function (db) {
+  const router = express.Router();
 
-// Create a new board
-router.post('/', authenticate, async (req, res) => {
-  const { title, description, is_private } = req.body;
-  const userId = req.user.id;
+  // Create a new board
+  router.post('/', authenticate, async (req, res) => {
+    const { title, description, is_private } = req.body;
+    const userId = req.user.id;
 
-  try {
-    const [board] = await db('boards')
-      .insert({
-        title,
-        description,
-        is_private: is_private || false,
-        user_id: userId,
-        created_at: new Date(),
-        updated_at: new Date()
-      })
-      .returning('*');
+    try {
+      const [board] = await db('boards')
+        .insert({
+          title,
+          description,
+          is_private: is_private || false,
+          user_id: userId,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning('*');
 
-    res.status(201).json(board); // Return created board
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to create board', error: err.message });
-  }
-});
-
-// Get all boards for current user
-router.get('/me', authenticate, async (req, res) => {
-  try {
-    const boards = await db('boards')
-      .where('user_id', req.user.id)
-      .orderBy('created_at', 'desc');
-
-    res.json(boards); // Return boards for the current user
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to fetch boards', error: err.message });
-  }
-});
-
-// Get a single board with its pins
-router.get('/:id', async (req, res) => {
-  try {
-    const board = await db('boards')
-      .where('boards.id', req.params.id)
-      .first();
-
-    if (!board) {
-      return res.status(404).json({ message: 'Board not found' });
+      res.status(201).json(board);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to create board', error: err.message });
     }
+  });
 
-    if (board.is_private && (!req.user || board.user_id !== req.user.id)) {
-      return res.status(403).json({ message: 'Not authorized to view this board' });
+  // Get all boards for current user
+  router.get('/me', authenticate, async (req, res) => {
+    try {
+      const boards = await db('boards')
+        .where('user_id', req.user.id)
+        .orderBy('created_at', 'desc');
+
+      res.json(boards);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to fetch boards', error: err.message });
     }
+  });
 
-    const pins = await db('board_pins')
-      .where('board_id', board.id)
-      .join('pins', 'board_pins.pin_id', 'pins.id')
-      .select('pins.*')
-      .orderBy('board_pins.created_at', 'desc');
+  // Get a single board with its pins
+  router.get('/:id', async (req, res) => {
+    try {
+      const board = await db('boards')
+        .where('boards.id', req.params.id)
+        .first();
 
-    const user = await db('users')
-      .where('id', board.user_id)
-      .select('id', 'username', 'avatar_url')
-      .first();
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
 
-    res.json({
-      ...board,
-      user,
-      pins
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to fetch board', error: err.message });
-  }
-});
+      if (board.is_private && (!req.user || board.user_id !== req.user.id)) {
+        return res.status(403).json({ message: 'Not authorized to view this board' });
+      }
 
-// Update a board
-router.put('/:id', authenticate, async (req, res) => {
-  const { title, description, is_private } = req.body;
+      const pins = await db('board_pins')
+        .where('board_id', board.id)
+        .join('pins', 'board_pins.pin_id', 'pins.id')
+        .select('pins.*')
+        .orderBy('board_pins.created_at', 'desc');
 
-  try {
-    const board = await db('boards')
-      .where({ id: req.params.id })
-      .first();
+      const user = await db('users')
+        .where('id', board.user_id)
+        .select('id', 'username', 'avatar_url')
+        .first();
 
-    if (!board) {
-      return res.status(404).json({ message: 'Board not found' });
+      res.json({
+        ...board,
+        user,
+        pins
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to fetch board', error: err.message });
     }
+  });
 
-    if (board.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
+  // Update a board
+  router.put('/:id', authenticate, async (req, res) => {
+    const { title, description, is_private } = req.body;
+
+    try {
+      const board = await db('boards')
+        .where({ id: req.params.id })
+        .first();
+
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      if (board.user_id !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+
+      const [updatedBoard] = await db('boards')
+        .where({ id: req.params.id })
+        .update({
+          title,
+          description,
+          is_private,
+          updated_at: new Date()
+        })
+        .returning('*');
+
+      res.json(updatedBoard);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to update board', error: err.message });
     }
+  });
 
-    const [updatedBoard] = await db('boards')
-      .where({ id: req.params.id })
-      .update({
-        title,
-        description,
-        is_private,
-        updated_at: new Date()
-      })
-      .returning('*');
+  // Delete a board
+  router.delete('/:id', authenticate, async (req, res) => {
+    try {
+      const board = await db('boards')
+        .where({ id: req.params.id })
+        .first();
 
-    res.json(updatedBoard); // Return updated board
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to update board', error: err.message });
-  }
-});
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
 
-// Delete a board
-router.delete('/:id', authenticate, async (req, res) => {
-  try {
-    const board = await db('boards')
-      .where({ id: req.params.id })
-      .first();
+      if (board.user_id !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
 
-    if (!board) {
-      return res.status(404).json({ message: 'Board not found' });
+      await db('boards')
+        .where({ id: req.params.id })
+        .del();
+
+      res.json({ message: 'Board deleted successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to delete board', error: err.message });
     }
+  });
 
-    if (board.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+  // Add pin to board
+  router.post('/:id/pins', authenticate, async (req, res) => {
+    const { pin_id } = req.body;
 
-    await db('boards')
-      .where({ id: req.params.id })
-      .del();
+    try {
+      const board = await db('boards')
+        .where({ id: req.params.id })
+        .first();
 
-    res.json({ message: 'Board deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to delete board', error: err.message });
-  }
-});
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
 
-// Add pin to board
-router.post('/:id/pins', authenticate, async (req, res) => {
-  const { pin_id } = req.body;
+      if (board.user_id !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
 
-  try {
-    const board = await db('boards')
-      .where({ id: req.params.id })
-      .first();
+      const pin = await db('pins')
+        .where({ id: pin_id })
+        .first();
 
-    if (!board) {
-      return res.status(404).json({ message: 'Board not found' });
-    }
+      if (!pin) {
+        return res.status(404).json({ message: 'Pin not found' });
+      }
 
-    if (board.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+      const existingPin = await db('board_pins')
+        .where({ board_id: req.params.id, pin_id })
+        .first();
 
-    const pin = await db('pins')
-      .where({ id: pin_id })
-      .first();
+      if (existingPin) {
+        return res.status(400).json({ message: 'Pin already exists in this board' });
+      }
 
-    if (!pin) {
-      return res.status(404).json({ message: 'Pin not found' });
-    }
-
-    // Check if the pin already exists in the board before inserting
-    const existingPin = await db('board_pins')
-      .where({ board_id: req.params.id, pin_id })
-      .first();
-
-    if (existingPin) {
-      return res.status(400).json({ message: 'Pin already exists in this board' });
-    }
-
-    await db('board_pins').insert({
-      board_id: req.params.id,
-      pin_id,
-      created_at: new Date()
-    });
-
-    res.json({ message: 'Pin added to board successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to add pin to board', error: err.message });
-  }
-});
-
-// Remove pin from board
-router.delete('/:id/pins/:pin_id', authenticate, async (req, res) => {
-  try {
-    const board = await db('boards')
-      .where({ id: req.params.id })
-      .first();
-
-    if (!board) {
-      return res.status(404).json({ message: 'Board not found' });
-    }
-
-    if (board.user_id !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-
-    await db('board_pins')
-      .where({
+      await db('board_pins').insert({
         board_id: req.params.id,
-        pin_id: req.params.pin_id
-      })
-      .del();
+        pin_id,
+        created_at: new Date()
+      });
 
-    res.json({ message: 'Pin removed from board successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to remove pin from board', error: err.message });
-  }
-});
+      res.json({ message: 'Pin added to board successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to add pin to board', error: err.message });
+    }
+  });
 
-export default router;
+  // Remove pin from board
+  router.delete('/:id/pins/:pin_id', authenticate, async (req, res) => {
+    try {
+      const board = await db('boards')
+        .where({ id: req.params.id })
+        .first();
+
+      if (!board) {
+        return res.status(404).json({ message: 'Board not found' });
+      }
+
+      if (board.user_id !== req.user.id) {
+        return res.status(403).json({ message: 'Not authorized' });
+      }
+
+      await db('board_pins')
+        .where({
+          board_id: req.params.id,
+          pin_id: req.params.pin_id
+        })
+        .del();
+
+      res.json({ message: 'Pin removed from board successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Failed to remove pin from board', error: err.message });
+    }
+  });
+
+  return router;
+}

@@ -1,4 +1,4 @@
-// server/middleware/auth.js
+import jwt from 'jsonwebtoken';
 
 export const authenticate = (req, res, next) => {
   const token = req.headers['authorization'];
@@ -7,9 +7,10 @@ export const authenticate = (req, res, next) => {
     return res.status(403).json({ message: 'No token provided' });
   }
 
-  // Logic for validating the token (e.g., using JWT)
+  // Logic for validating the token
   try {
-    const decoded = jwt.verify(token, 'your-secret-key'); // replace with actual secret
+    const secretKey = process.env.JWT_SECRET || 'your-secret-key';  // Ambil secret key dari env
+    const decoded = jwt.verify(token, secretKey);
     req.user = decoded; // Attach user data to request object
     next(); // Proceed to the next middleware or route handler
   } catch (err) {

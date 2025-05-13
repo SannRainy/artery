@@ -3,6 +3,7 @@ import express from 'express'
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
+export default function (db) {
 const router = express.Router()
 
 // Middleware autentikasi
@@ -17,8 +18,6 @@ const authenticate = (req, res, next) => {
     next()
   })
 }
-
-export default function (db) {
   // REGISTER
   router.post('/register', async (req, res) => {
     const { username, email, password } = req.body
