@@ -1,0 +1,22 @@
+{
+  "name": "artery_backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "migrate": "knex migrate:latest",
+    "migrate:rollback": "knex migrate:rollback"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "knex": "^2.0.0",
+    "mysql2": "^2.3.3",
+    "jsonwebtoken": "^8.5.1",
+    "dotenv": "^16.0.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+}

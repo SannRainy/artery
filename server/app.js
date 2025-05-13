@@ -1,78 +1,69 @@
-import fastify from 'fastify';
-import fastifyCors from '@fastify/cors';
-import fastifyJwt from '@fastify/jwt';
-import fastifyStatic from '@fastify/static';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import knex from 'knex';
+import userRoutes from './routes/users.js';
+import tagRoutes from './routes/tags.js';
+import boardRoutes from './routes/boards.js';
+import pinRoutes from './routes/pins.js';
+import { authenticate } from './middleware/auth.js';  // Include authentication middleware
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config();
 
-const app = fastify({ logger: true });
-
-// CORS Configuration
-app.register(fastifyCors, {
-  origin: [
-    'http://localhost:3000',
-    'https://your-production-domain.com'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-});
-
-// JWT Authentication
-app.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || 'your-strong-secret-key',
-  sign: { expiresIn: '1h' }
-});
-
-// Proxy Endpoint
-app.get('/proxy/aitopia', async (request, reply) => {
-  try {
-    const response = await fetch('https://extensions.aitopia.ai/ai/prompts', {
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': request.headers.authorization || ''
-      }
-    });
-    
-    if (!response.ok) throw new Error('Proxy request failed');
-    
-    const data = await response.json();
-    reply.send(data);
-  } catch (error) {
-    app.log.error(error);
-    reply.code(502).send({ error: 'Bad Gateway' });
+// Validate environment variables
+const requiredEnvVars = ['DB_USER', 'DB_PASS', 'DB_NAME', 'PORT'];
+requiredEnvVars.forEach((envVar) => {
+  if (!process.env[envVar]) {
+    throw new Error(`Missing required environment variable: ${envVar}`);
   }
 });
 
-// Static files (optional)
-app.register(fastifyStatic, {
-  root: path.join(__dirname, 'public'),
-  prefix: '/client/public/',
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Setup database connection
+const db = knex({
+  client: 'mysql2',
+  connection: {
+    host: 'localhost',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+  },
 });
 
-// Health check
-app.get('/health', async () => ({ status: 'ok' }));
+// Middleware
+app.use(cors({ origin: 'http://localhost:3001', credentials: true }));
+app.use(express.json());
 
-// Start server
-const start = async () => {
-  try {
-    await app.listen({
-      port: process.env.PORT || 3001,
-      host: '0.0.0.0'
-    });
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
+// Authentication middleware (if needed for certain routes)
+app.use(authenticate); // Apply authentication globally or to specific routes
+
+// Routes
+app.use('/api/users', userRoutes(db));      // Route for user-related actions
+app.use('/api/tags', tagRoutes(db));        // Route for tag-related actions
+app.use('/api/boards', boardRoutes(db));    // Route for board-related actions
+app.use('/api/pins', pinRoutes(db));        // Route for pin-related actions
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: 'Something went wrong!' });
+});
+
+// Start the server
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// Graceful shutdown
+const shutdown = () => {
+  console.log('Shutting down the server...');
+  server.close(() => {
+    console.log('Server has shut down gracefully.');
+    process.exit(0);
+  });
 };
 
-const PORT = process.env.PORT || 3001; // Change default to 5000 or another port
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-start();
+process.on('SIGINT', shutdown); // Catch SIGINT (Ctrl+C)
+process.on('SIGTERM', shutdown); // Catch SIGTERM (e.g., from docker stop)

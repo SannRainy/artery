@@ -1,174 +1,222 @@
-module.exports = async (fastify, opts) => {
-  // Create a new board
-  fastify.post('/', { preValidation: [fastify.authenticate] }, async (request, reply) => {
-    const { title, description, is_private } = request.body
+// server/routes/boards.js
 
-    const [board] = await fastify.knex('boards')
+import express from 'express';
+const router = express.Router();
+import { authenticate } from '../middleware/auth.js';
+import knexConfig from '../knexfile.js'; // Import the knex configuration
+import knex from 'knex';
+
+const db = knex(knexConfig.development); // Initialize knex with the correct environment (development/production)
+
+// Create a new board
+router.post('/', authenticate, async (req, res) => {
+  const { title, description, is_private } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const [board] = await db('boards')
       .insert({
         title,
         description,
         is_private: is_private || false,
-        user_id: request.user.id,
+        user_id: userId,
         created_at: new Date(),
         updated_at: new Date()
       })
-      .returning('*')
+      .returning('*');
 
-    return board
-  })
+    res.status(201).json(board); // Return created board
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to create board', error: err.message });
+  }
+});
 
-  // Get all boards for current user
-  fastify.get('/me', { preValidation: [fastify.authenticate] }, async (request) => {
-    const boards = await fastify.knex('boards')
-      .where('user_id', request.user.id)
-      .orderBy('created_at', 'desc')
+// Get all boards for current user
+router.get('/me', authenticate, async (req, res) => {
+  try {
+    const boards = await db('boards')
+      .where('user_id', req.user.id)
+      .orderBy('created_at', 'desc');
 
-    return boards
-  })
+    res.json(boards); // Return boards for the current user
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch boards', error: err.message });
+  }
+});
 
-  // Get a single board with its pins
-  fastify.get('/:id', async (request, reply) => {
-    const board = await fastify.knex('boards')
-      .where('boards.id', request.params.id)
-      .first()
+// Get a single board with its pins
+router.get('/:id', async (req, res) => {
+  try {
+    const board = await db('boards')
+      .where('boards.id', req.params.id)
+      .first();
 
     if (!board) {
-      return reply.code(404).send({ message: 'Board not found' })
+      return res.status(404).json({ message: 'Board not found' });
     }
 
-    if (board.is_private && (!request.user || board.user_id !== request.user.id)) {
-      return reply.code(403).send({ message: 'Not authorized to view this board' })
+    if (board.is_private && (!req.user || board.user_id !== req.user.id)) {
+      return res.status(403).json({ message: 'Not authorized to view this board' });
     }
 
-    const pins = await fastify.knex('board_pins')
+    const pins = await db('board_pins')
       .where('board_id', board.id)
       .join('pins', 'board_pins.pin_id', 'pins.id')
       .select('pins.*')
-      .orderBy('board_pins.created_at', 'desc')
+      .orderBy('board_pins.created_at', 'desc');
 
-    const user = await fastify.knex('users')
+    const user = await db('users')
       .where('id', board.user_id)
       .select('id', 'username', 'avatar_url')
-      .first()
+      .first();
 
-    return {
+    res.json({
       ...board,
       user,
       pins
-    }
-  })
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to fetch board', error: err.message });
+  }
+});
 
-  // Update a board
-  fastify.put('/:id', { preValidation: [fastify.authenticate] }, async (request, reply) => {
-    const { title, description, is_private } = request.body
+// Update a board
+router.put('/:id', authenticate, async (req, res) => {
+  const { title, description, is_private } = req.body;
 
-    const board = await fastify.knex('boards')
-      .where({ id: request.params.id })
-      .first()
+  try {
+    const board = await db('boards')
+      .where({ id: req.params.id })
+      .first();
 
     if (!board) {
-      return reply.code(404).send({ message: 'Board not found' })
+      return res.status(404).json({ message: 'Board not found' });
     }
 
-    if (board.user_id !== request.user.id) {
-      return reply.code(403).send({ message: 'Not authorized' })
+    if (board.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const [updatedBoard] = await fastify.knex('boards')
-      .where({ id: request.params.id })
+    const [updatedBoard] = await db('boards')
+      .where({ id: req.params.id })
       .update({
         title,
         description,
         is_private,
         updated_at: new Date()
       })
-      .returning('*')
+      .returning('*');
 
-    return updatedBoard
-  })
+    res.json(updatedBoard); // Return updated board
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to update board', error: err.message });
+  }
+});
 
-  // Delete a board
-  fastify.delete('/:id', { preValidation: [fastify.authenticate] }, async (request, reply) => {
-    const board = await fastify.knex('boards')
-      .where({ id: request.params.id })
-      .first()
-
-    if (!board) {
-      return reply.code(404).send({ message: 'Board not found' })
-    }
-
-    if (board.user_id !== request.user.id) {
-      return reply.code(403).send({ message: 'Not authorized' })
-    }
-
-    await fastify.knex('boards')
-      .where({ id: request.params.id })
-      .del()
-
-    return { message: 'Board deleted successfully' }
-  })
-
-  // Add pin to board
-  fastify.post('/:id/pins', { preValidation: [fastify.authenticate] }, async (request, reply) => {
-    const { pin_id } = request.body
-
-    const board = await fastify.knex('boards')
-      .where({ id: request.params.id })
-      .first()
+// Delete a board
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    const board = await db('boards')
+      .where({ id: req.params.id })
+      .first();
 
     if (!board) {
-      return reply.code(404).send({ message: 'Board not found' })
+      return res.status(404).json({ message: 'Board not found' });
     }
 
-    if (board.user_id !== request.user.id) {
-      return reply.code(403).send({ message: 'Not authorized' })
+    if (board.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const pin = await fastify.knex('pins')
+    await db('boards')
+      .where({ id: req.params.id })
+      .del();
+
+    res.json({ message: 'Board deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to delete board', error: err.message });
+  }
+});
+
+// Add pin to board
+router.post('/:id/pins', authenticate, async (req, res) => {
+  const { pin_id } = req.body;
+
+  try {
+    const board = await db('boards')
+      .where({ id: req.params.id })
+      .first();
+
+    if (!board) {
+      return res.status(404).json({ message: 'Board not found' });
+    }
+
+    if (board.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    const pin = await db('pins')
       .where({ id: pin_id })
-      .first()
+      .first();
 
     if (!pin) {
-      return reply.code(404).send({ message: 'Pin not found' })
+      return res.status(404).json({ message: 'Pin not found' });
     }
 
-    try {
-      await fastify.knex('board_pins').insert({
-        board_id: request.params.id,
-        pin_id: pin_id,
-        created_at: new Date()
-      })
+    // Check if the pin already exists in the board before inserting
+    const existingPin = await db('board_pins')
+      .where({ board_id: req.params.id, pin_id })
+      .first();
 
-      return { message: 'Pin added to board successfully' }
-    } catch (err) {
-      if (err.code === '23505') {
-        return reply.code(400).send({ message: 'Pin already exists in this board' })
-      }
-      throw err
+    if (existingPin) {
+      return res.status(400).json({ message: 'Pin already exists in this board' });
     }
-  })
 
-  // Remove pin from board
-  fastify.delete('/:id/pins/:pin_id', { preValidation: [fastify.authenticate] }, async (request, reply) => {
-    const board = await fastify.knex('boards')
-      .where({ id: request.params.id })
-      .first()
+    await db('board_pins').insert({
+      board_id: req.params.id,
+      pin_id,
+      created_at: new Date()
+    });
+
+    res.json({ message: 'Pin added to board successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to add pin to board', error: err.message });
+  }
+});
+
+// Remove pin from board
+router.delete('/:id/pins/:pin_id', authenticate, async (req, res) => {
+  try {
+    const board = await db('boards')
+      .where({ id: req.params.id })
+      .first();
 
     if (!board) {
-      return reply.code(404).send({ message: 'Board not found' })
+      return res.status(404).json({ message: 'Board not found' });
     }
 
-    if (board.user_id !== request.user.id) {
-      return reply.code(403).send({ message: 'Not authorized' })
+    if (board.user_id !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
     }
 
-    await fastify.knex('board_pins')
+    await db('board_pins')
       .where({
-        board_id: request.params.id,
-        pin_id: request.params.pin_id
+        board_id: req.params.id,
+        pin_id: req.params.pin_id
       })
-      .del()
+      .del();
 
-    return { message: 'Pin removed from board successfully' }
-  })
-}
+    res.json({ message: 'Pin removed from board successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to remove pin from board', error: err.message });
+  }
+});
+
+export default router;
