@@ -18,7 +18,8 @@ export default function LoginForm() {
       await login(email, password)
       // Redirect or take further action on successful login
     } catch (error) {
-      setErrorMessage('Invalid email or password') // Set error message
+      const message = error.response?.data?.message || 'Invalid email or password'
+      setErrorMessage(message) // Set error message from server
       console.error('Login failed:', error)
     } finally {
       setLoading(false)

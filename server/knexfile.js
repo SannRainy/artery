@@ -1,26 +1,28 @@
-// knexfile.js
-import dotenv from 'dotenv';
+const dotenv = require('dotenv');
 dotenv.config();
 
-export default {
+module.exports = {
   development: {
     client: 'mysql2',
     connection: {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 3306,
-      database: process.env.DB_NAME || 'artery_project',
+      database: process.env.DB_NAME || 'pinterest',
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
-      charset: 'utf8mb4',
+      charset: 'utf8mb4'
     },
     pool: {
       min: 2,
-      max: 10,
+      max: 10
     },
     migrations: {
       tableName: 'knex_migrations',
-      directory: './server/migrations',
+      directory: './migrations'
     },
+    seeds: {
+      directory: './seeds'
+    }
   },
   production: {
     client: 'mysql2',
@@ -30,15 +32,15 @@ export default {
       database: process.env.DB_NAME,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
-      charset: 'utf8mb4',
+      charset: 'utf8mb4'
     },
     pool: {
       min: 2,
-      max: 10,
+      max: 10
     },
     migrations: {
       tableName: 'knex_migrations',
-      directory: './migrations',
-    },
-  },
+      directory: './migrations'
+    }
+  }
 };
