@@ -1,18 +1,19 @@
 const jwt = require('jsonwebtoken');
 
 exports.authenticate = (req, res, next) => {
-  const token = req.headers['authorization'];
+  const authHeader = req.headers['authorization'];
 
-  if (!token) {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(403).json({ message: 'No token provided' });
   }
 
-  // Logic for validating the token
+  const token = authHeader.split(' ')[1];  // Ambil hanya token setelah "Bearer"
+
   try {
-    const secretKey = process.env.JWT_SECRET || 'your-secret-key';  // Ambil secret key dari env
+    const secretKey = process.env.JWT_SECRET || 'your-secret-key';
     const decoded = jwt.verify(token, secretKey);
-    req.user = decoded; // Attach user data to request object
-    next(); // Proceed to the next middleware or route handler
+    req.user = decoded;
+    next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid token' });
   }

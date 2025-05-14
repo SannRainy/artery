@@ -28,8 +28,7 @@
         }
         fetchPins()
       }, [])
-  console.log('Token:', localStorage.getItem('token'));
-  console.log('Pins Response:', data);
+
 
       const handlePinCreated = (newPin) => {
         setPins((prevPins) => [newPin, ...prevPins])  // Efficient state update

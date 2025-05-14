@@ -2,7 +2,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
 });
 
 // Request Interceptor: tambahkan token JWT dari localStorage
@@ -18,15 +18,13 @@ api.interceptors.request.use(
 )
 
 // Response Interceptor: handle error seperti token expired
+// api.js
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    console.error('Error response:', error.response);  // Menampilkan detail error
-    if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token')
-        window.location.href = '/login'
-      }
+  (error) => {  
+    if (error.response?.status === 401 && typeof window !== 'undefined') {
+      localStorage.removeItem('token')
+      // Jangan redirect di sini
     }
     return Promise.reject(error)
   }
