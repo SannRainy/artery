@@ -1,13 +1,13 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import userRoutes from './routes/users.js';
-import tagRoutes from './routes/tags.js';
-import boardRoutes from './routes/boards.js';
-import pinRoutes from './routes/pins.js';
-import { authenticate } from './middleware/auth.js';
-import knex from 'knex';
-import knexConfig from './knexfile.js';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const userRoutes = require('./routes/users');
+const tagRoutes = require('./routes/tags');
+const boardRoutes = require('./routes/boards');
+const pinRoutes = require('./routes/pins');
+const { authenticate } = require('./middleware/auth');
+const knex = require('knex');
+const knexConfig = require('./knexfile');
 
 dotenv.config();
 
@@ -18,16 +18,13 @@ const PORT = process.env.PORT || 3000;
 
 // ✅ Middleware CORS
 app.use(cors());
-app.options('*', cors()); // ⬅️ Taruh DI SINI, setelah `app.use(cors())`
+app.options('*', cors());
 
 app.get('/', (req, res) => {
   res.send('API is running!');
 });
 
 app.use(express.json());
-
-// ⛔ Jangan global authenticate
-// app.use(authenticate);
 
 // ✅ Public routes
 app.use('/api/users', userRoutes(db));
@@ -48,14 +45,14 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 
-  // Graceful shutdown
-  const shutdown = () => {
-    console.log('Shutting down the server...');
-    server.close(() => {
-      console.log('Server has shut down gracefully.');
-      process.exit(0);
-    });
-  };
+// Graceful shutdown
+const shutdown = () => {
+  console.log('Shutting down the server...');
+  server.close(() => {
+    console.log('Server has shut down gracefully.');
+    process.exit(0);
+  });
+};
 
-  process.on('SIGINT', shutdown); // Catch SIGINT (Ctrl+C)
-  process.on('SIGTERM', shutdown); // Catch SIGTERM (e.g., from docker stop)
+process.on('SIGINT', shutdown);  // Catch SIGINT (Ctrl+C)
+process.on('SIGTERM', shutdown); // Catch SIGTERM (e.g., from docker stop)

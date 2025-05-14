@@ -1,8 +1,7 @@
-// server/routes/pins.js
-import express from 'express';
-import { authenticate } from '../middleware/auth.js';
+const express = require('express');
+const { authenticate } = require('../middleware/auth.js');
 
-export default function (db) {
+module.exports = function (db) {
   const router = express.Router();
 
   // Create pin
@@ -60,4 +59,4 @@ export default function (db) {
   });
 
   return router;
-}
+};

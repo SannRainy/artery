@@ -1,10 +1,9 @@
-// server/routes/users.js
-import express from 'express';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { authenticate } from '../middleware/auth.js';
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { authenticate } = require('../middleware/auth');
 
-export default function (db) {
+module.exports = function (db) {
   const router = express.Router();
 
   // ✅ REGISTER
@@ -110,4 +109,4 @@ export default function (db) {
   });
 
   return router;
-}
+};

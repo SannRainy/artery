@@ -1,9 +1,7 @@
-// server/routes/boards.js
+const express = require('express');
+const { authenticate } = require('../middleware/auth.js');
 
-import express from 'express';
-import { authenticate } from '../middleware/auth.js';
-
-export default function (db) {
+module.exports = function (db) {
   const router = express.Router();
 
   // Create a new board
@@ -217,4 +215,4 @@ export default function (db) {
   });
 
   return router;
-}
+};

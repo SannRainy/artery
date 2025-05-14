@@ -1,7 +1,6 @@
-// server/routes/tags.js
-import express from 'express';
+const express = require('express');
 
-export default function (db) {
+module.exports = function (db) {
   const router = express.Router();
 
   // Get all tags
@@ -72,5 +71,4 @@ export default function (db) {
   });
 
   return router;
-}
-
+};
