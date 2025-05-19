@@ -13,7 +13,7 @@ export default function BoardCard({ board }) {
                 className={`relative ${index === 0 && board.pins.length === 1 ? 'col-span-2 row-span-2' : ''}`}
               >
                 <img
-                  src={pin.image_url || '/images/default-pin.jpg'}
+                  src={pin.image_url || '/img/default-pin.jpg'}
                   alt={pin.title || 'Default Pin Image'}
                   className="w-full h-full object-cover"
                   loading="lazy" // Lazy load images for better performance

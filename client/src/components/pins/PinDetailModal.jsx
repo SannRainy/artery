@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../../contexts/AuthContext'
+import { useAuth } from '../../contexts/AuthContexts'
 import { likePin, unlikePin, addComment } from '../../services/pins'
 import { FaHeart, FaRegHeart, FaComment, FaShare } from 'react-icons/fa'
 import Button from '../ui/Button'

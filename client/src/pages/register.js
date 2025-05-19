@@ -27,7 +27,7 @@ export default function RegisterPage() {
   return (
     <>
       <Head>
-        <title>Register | Pinterest Clone</title>
+        <title>Register | Artery Project</title>
       </Head>
 
       <main className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

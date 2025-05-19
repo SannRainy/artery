@@ -5,6 +5,9 @@ module.exports = function (db) {
 
   // Get all tags
   router.get('/', async (req, res) => {
+    const requestId = req.requestId;
+    const timestamp = new Date().toISOString();
+
     try {
       const tags = await db('tags')
         .select('*')
@@ -12,13 +15,22 @@ module.exports = function (db) {
 
       res.json(tags);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Failed to fetch tags' });
+      console.error(`[${requestId}] Failed to fetch tags:`, err.message, err.stack);
+      res.status(500).json({
+        error: {
+          message: 'Failed to fetch tags',
+          requestId,
+          timestamp
+        }
+      });
     }
   });
 
   // Get popular tags
   router.get('/popular', async (req, res) => {
+    const requestId = req.requestId;
+    const timestamp = new Date().toISOString();
+
     try {
       const tags = await db('pin_tags')
         .join('tags', 'pin_tags.tag_id', 'tags.id')
@@ -30,29 +42,39 @@ module.exports = function (db) {
 
       res.json(tags);
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Failed to fetch popular tags' });
+      console.error(`[${requestId}] Failed to fetch popular tags:`, err.message, err.stack);
+      res.status(500).json({
+        error: {
+          message: 'Failed to fetch popular tags',
+          requestId,
+          timestamp
+        }
+      });
     }
   });
 
   // Get pins by tag
   router.get('/:tag/pins', async (req, res) => {
+    const requestId = req.requestId;
+    const timestamp = new Date().toISOString();
     const { page = 1, limit = 30 } = req.query;
     const offset = (page - 1) * limit;
 
     try {
+      const tagName = req.params.tag.toLowerCase();
+
       const pins = await db('pin_tags')
-        .where('tags.name', req.params.tag.toLowerCase())
         .join('tags', 'pin_tags.tag_id', 'tags.id')
         .join('pins', 'pin_tags.pin_id', 'pins.id')
+        .where('tags.name', tagName)
         .select('pins.*')
         .orderBy('pins.created_at', 'desc')
         .limit(limit)
         .offset(offset);
 
       const total = await db('pin_tags')
-        .where('tags.name', req.params.tag.toLowerCase())
         .join('tags', 'pin_tags.tag_id', 'tags.id')
+        .where('tags.name', tagName)
         .count('* as count')
         .first();
 
@@ -65,8 +87,14 @@ module.exports = function (db) {
         }
       });
     } catch (err) {
-      console.error(err);
-      res.status(500).json({ message: 'Failed to fetch pins for tag' });
+      console.error(`[${requestId}] Failed to fetch pins for tag '${req.params.tag}':`, err.message, err.stack);
+      res.status(500).json({
+        error: {
+          message: 'Failed to fetch pins for tag',
+          requestId,
+          timestamp
+        }
+      });
     }
   });
 

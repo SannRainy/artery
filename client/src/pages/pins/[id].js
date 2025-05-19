@@ -1,8 +1,8 @@
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import { getPinById } from '../../../services/pins'  // Service to fetch pin data
-import { useAuth } from '../../../contexts/AuthContext'  // Custom hook for user authentication
-import PinDetailModal from '../../../components/pins/PinDetailModal'  // Modal component to show pin details
+import { getPinById } from '../../services/pins'  // Service to fetch pin data
+import { useAuth } from '../../contexts/AuthContexts'  // Custom hook for user authentication
+import PinDetailModal from '../../components/pins/PinDetailModal'  // Modal component to show pin details
 import Head from 'next/head'
 
 export default function PinDetailPage() {

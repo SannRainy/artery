@@ -13,13 +13,34 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const [imagePreview, setImagePreview] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  // State untuk tags
+  const [tags, setTags] = useState([])
+
+  // Tambah tag saat user tekan Enter atau koma
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault()
+      const value = e.target.value.trim()
+      if (value && !tags.includes(value)) {
+        setTags([...tags, value])
+      }
+      e.target.value = ''
+    }
+  }
+
+  // Hapus tag
+  const removeTag = (tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove))
+  }
+
   const onSubmit = async (data) => {
     try {
       setIsLoading(true)
       const formData = new FormData()
       formData.append('title', data.title)
       formData.append('description', data.description)
-      formData.append('link_url', data.link_url)
+      // Kirim tags sebagai JSON string
+      formData.append('tags', JSON.stringify(tags))
       if (data.image[0]) {
         formData.append('image', data.image[0])
       }
@@ -48,6 +69,7 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const handleClose = () => {
     reset()
     setImagePreview(null)
+    setTags([])  // reset tags juga
     onClose()
   }
 
@@ -93,12 +115,30 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
           rows={3}
         />
 
-        <Input
-          label="Link URL"
-          type="url"
-          {...register('link_url')}
-          placeholder="https://example.com"
-        />
+        {/* Ganti Link URL jadi input tags */}
+        <div>
+          <label className="block mb-1 font-semibold">Tags</label>
+          <input
+            type="text"
+            placeholder="Tulis tag lalu tekan Enter atau koma"
+            onKeyDown={handleTagKeyDown}
+            className="border rounded px-3 py-2 w-full"
+          />
+          <div className="flex flex-wrap gap-2 mt-2">
+            {tags.map(tag => (
+              <span key={tag} className="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center space-x-2">
+                <span>{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="font-bold"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button
