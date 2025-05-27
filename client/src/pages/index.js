@@ -6,7 +6,7 @@ import PinCard from '../components/pins/PinCard';
 import PinCreateModal from '../components/pins/PinCreateModal';
 import { getPins, searchPins } from '../services/pins';
 import Button from '../components/ui/Button';
-import Header from '../components/layout/Header'; // ✅ Import Header baru
+import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
 
 export default function Home() {
@@ -170,7 +170,7 @@ return (
         )}
       </main>
 
-      {/* Create Pin Modal */}
+      {/* Create Pin Modal */}  
       <PinCreateModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}

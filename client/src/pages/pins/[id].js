@@ -42,7 +42,7 @@ export default function PinDetailPage() {
   return (
     <>
       <Head>
-        <title>{pin.title} | Pinterest Clone</title>  {/* Dynamic page title for SEO */}
+        <title>{pin.title} | Artery Project</title>  {/* Dynamic page title for SEO */}
       </Head>
       
       <div className="container mx-auto px-4 py-8">

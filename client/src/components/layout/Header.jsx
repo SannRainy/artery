@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContexts';
 import { FiSearch, FiPlus, FiBell, FiMessageSquare, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
-import { FaPinterest } from 'react-icons/fa';
 
 export default function Header({ onSearch, searchQuery, onResetSearch, onCreateClick }) {
   const { user, logout } = useAuth();
@@ -13,9 +12,24 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
+          {/* Logo - Replaced Pinterest with Artery Project logo */}
           <div className="flex items-center">
-            <FaPinterest className="text-red-500 text-3xl" />
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+            </div>
             <span className="ml-2 font-bold text-xl hidden sm:inline">Artery Project</span>
           </div>
 
@@ -30,7 +44,7 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 placeholder="Type here to search"
                 onChange={(e) => onSearch(e.target.value)}
                 value={searchQuery}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white"
               />
               {searchQuery && (
                 <button
@@ -56,7 +70,7 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
               <>
                 <button
                   onClick={onCreateClick}
-                  className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600"
+                  className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark"
                 >
                   <FiPlus className="text-xl" />
                 </button>
@@ -111,7 +125,7 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
               placeholder="Search"
               onChange={(e) => onSearch(e.target.value)}
               value={searchQuery}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white"
             />
           </div>
         </div>
