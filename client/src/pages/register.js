@@ -72,19 +72,6 @@ export default function RegisterPage() {
             <div className="bg-white py-8 px-6 shadow-lg rounded-xl backdrop-blur-sm bg-opacity-90 border border-gray-100">
               <RegisterForm />
             </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Already have an account?{' '}
-                <button
-                  onClick={() => router.push('/login')}
-                  className="font-medium text-primary hover:text-primary-dark transition-colors duration-200"
-                  aria-label="Link to login"
-                >
-                  Sign in here
-                </button>
-              </p>
-            </div>
           </section>
         </div>
       </main>

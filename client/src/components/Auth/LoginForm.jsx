@@ -4,6 +4,7 @@ import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'react-toastify'  
 
 export default function LoginForm() {
   const { login } = useAuth()
@@ -12,20 +13,26 @@ export default function LoginForm() {
   const [errorMessage, setErrorMessage] = useState('')
 
   const onSubmit = async ({ email, password }) => {
-    setLoading(true)
-    setErrorMessage('') // Reset error message
-    try {
-      await login(email, password)
-      // Redirect or take further action on successful login
-    } catch (error) {
-      const message = error.response?.data?.message || 'Invalid email or password'
-      setErrorMessage(message) // Set error message from server
-      console.error('Login failed:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  setLoading(true)
+  setErrorMessage('')
+  try {
+    const result = await login(email, password)
 
+    if (result.success) {
+      toast.success('Login berhasil!')
+    } else {
+      setErrorMessage(result.message)
+      toast.error(result.message)
+    }
+  } catch (err) {
+    // Fallback: kalau kamu tetap jaga kemungkinan throw (optional)
+    const fallbackMsg = 'Terjadi kesalahan tak terduga.'
+    setErrorMessage(fallbackMsg)
+    toast.error(fallbackMsg)
+  } finally {
+    setLoading(false)
+  }
+}
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>} {/* Error message display */}
@@ -48,7 +55,7 @@ export default function LoginForm() {
         label="Password"
         type="password"
         {...register('password', { required: 'Password is required' })}
-        error={errors.password}
+        error={errors.password} 
       />
 
       <div className="flex items-center justify-between">

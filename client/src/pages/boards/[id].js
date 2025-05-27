@@ -32,7 +32,7 @@ export default function BoardPage() {
   return (
     <>
       <Head>
-        <title>{board?.title || 'Board'} | Pinterest Clone</title>  
+        <title>{board?.title || 'Board'} | Artery Project</title>  
       </Head>
 
       <div className="container mx-auto px-4 py-8">

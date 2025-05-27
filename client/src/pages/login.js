@@ -78,18 +78,6 @@ export default function LoginPage() {
             <div className="bg-white py-8 px-6 shadow-lg rounded-xl backdrop-blur-sm bg-opacity-90 border border-gray-100">
               <LoginForm />
             </div>
-
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
-                <button
-                  onClick={() => router.push('/register')}
-                  className="font-medium text-primary hover:text-primary-dark transition-colors duration-200"
-                >
-                  Sign up here
-                </button>
-              </p>
-            </div>
           </div>
         </div>
       </div>

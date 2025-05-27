@@ -4,22 +4,31 @@ import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Link from 'next/link'
 import { useState } from 'react'
+import { toast } from 'react-toastify' // <== pastikan react-toastify sudah diinstal
 
 export default function RegisterForm() {
-  const { register } = useAuth()
+  const { register: authRegister } = useAuth()
   const { register: formRegister, handleSubmit, formState: { errors } } = useForm()
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
   const onSubmit = async ({ username, email, password }) => {
     setLoading(true)
-    setErrorMessage('') // Reset error message
+    setErrorMessage('')
     try {
-      await register(username, email, password)
-      // Redirect or take further action after successful registration
+      const result = await authRegister(username, email, password)
+
+      if (result.success) {
+        toast.success('Pendaftaran berhasil!')
+        // redirect sudah dilakukan dari context
+      } else {
+        setErrorMessage(result.message)
+        toast.error(result.message)
+      }
     } catch (error) {
-      setErrorMessage('Registration failed, please try again.') // Set error message
-      console.error('Registration failed:', error)
+      const fallback = 'Email mungkin sudah terpakai. Silakan coba lagi.'
+      setErrorMessage(fallback)
+      toast.error(fallback)
     } finally {
       setLoading(false)
     }
@@ -27,7 +36,7 @@ export default function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>} {/* Error message display */}
+      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
 
       <Input
         label="Username"
@@ -38,7 +47,7 @@ export default function RegisterForm() {
       <Input
         label="Email"
         type="email"
-        {...formRegister('email', { 
+        {...formRegister('email', {
           required: 'Email is required',
           pattern: {
             value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -51,7 +60,7 @@ export default function RegisterForm() {
       <Input
         label="Password"
         type="password"
-        {...formRegister('password', { 
+        {...formRegister('password', {
           required: 'Password is required',
           minLength: {
             value: 6,

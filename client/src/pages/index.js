@@ -140,14 +140,7 @@ return (
         ) : pins.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-gray-500">No pins found. Create one!</p>
-            {user && (
-              <Button
-                onClick={() => setIsCreateModalOpen(true)}
-                className="mt-4 flex items-center gap-2 bg-primary hover:bg-primary-dark text-white mx-auto"
-              >
-                + Create Pin
-              </Button>
-            )}
+            
           </div>
         ) : (
           <>

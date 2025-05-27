@@ -33,28 +33,36 @@ export const AuthProvider = ({ children }) => {
   }, [loadUser])
 
   const login = async (email, password) => {
-    try {
-      const { user, token } = await authLogin(email, password)
-      localStorage.setItem('token', token)
-      setUser(user)
-      router.push('/')
-    } catch (err) {
-      console.error('Login failed', err)
-      throw err // Re-throw untuk ditangkap di form
+  try {
+    const { user, token } = await authLogin(email, password)
+    localStorage.setItem('token', token)
+    setUser(user)
+    router.push('/')
+    return { success: true }
+  } catch (err) {
+    console.warn('Login gagal:', err?.response?.data?.message || err.message)
+    return {
+      success: false,
+      message: err?.response?.data?.message || 'Login gagal. Coba lagi.',
     }
   }
+}
 
   const register = async (username, email, password) => {
-    try {
-      const { user, token } = await authRegister(username, email, password)
-      localStorage.setItem('token', token)
-      setUser(user)
-      router.push('/')
-    } catch (err) {
-      console.error('Registration failed', err)
-      throw err
+  try {
+    const { user, token } = await authRegister(username, email, password)
+    localStorage.setItem('token', token)
+    setUser(user)
+    router.push('/')
+    return { success: true }
+  } catch (err) {
+    console.warn('Registration error:', err?.response?.data?.message || err.message)
+    return {
+      success: false,
+      message: err?.response?.data?.message || 'Email mungkin sudah terpakai. Silakan coba lagi.',
     }
   }
+}
 
   const logout = useCallback(() => {
     localStorage.removeItem('token')
