@@ -5,7 +5,6 @@ import MasonryLayout from '../components/layout/MasonryLayout';
 import PinCard from '../components/pins/PinCard';
 import PinCreateModal from '../components/pins/PinCreateModal';
 import { getPins, searchPins } from '../services/pins';
-import Button from '../components/ui/Button';
 import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
 

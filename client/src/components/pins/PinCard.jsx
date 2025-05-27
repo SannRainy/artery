@@ -29,7 +29,7 @@ export default function PinCard({ pin }) {
       <Link href={`/pins/${pin.id}`}>
         <div className="relative cursor-zoom-in">
           <img
-            src={pin.image_url || '/images/default-pin.jpg'}
+            src={pin.image_url || '../img/default-pin.png'} 
             alt={pin.title || 'Pin image'}
             className="w-full h-auto object-cover"
           />
@@ -91,7 +91,7 @@ export default function PinCard({ pin }) {
         <Link href={`/users/${pin.user_id}`}>
           <div className="flex items-center space-x-2 cursor-pointer">
             <img
-              src={pin.user?.avatar_url || '/images/default-avatar.jpg'}
+              src={pin.user?.avatar_url || '/img/default-avatar.png'}
               alt={pin.user?.username}
               className="w-6 h-6 rounded-full object-cover"
             />

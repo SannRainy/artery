@@ -12,11 +12,8 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const [imagePreview, setImagePreview] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-
-  // State untuk tags
   const [tags, setTags] = useState([])
 
-  // Tambah tag saat user tekan Enter atau koma
   const handleTagKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault()
@@ -28,7 +25,6 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
     }
   }
 
-  // Hapus tag
   const removeTag = (tagToRemove) => {
     setTags(tags.filter(tag => tag !== tagToRemove))
   }
@@ -38,18 +34,20 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
       setIsLoading(true)
       const formData = new FormData()
       formData.append('title', data.title)
-      formData.append('description', data.description)
-      // Kirim tags sebagai JSON string
+      formData.append('description', data.description || '')
       formData.append('tags', JSON.stringify(tags))
-      if (data.image[0]) {
+      if (data.image && data.image[0]) {
         formData.append('image', data.image[0])
       }
+      // Optional: kirim user id jika backend butuh
+      formData.append('user_id', user?.id)
 
       const newPin = await createPin(formData)
       onPinCreated(newPin)
       handleClose()
     } catch (err) {
       console.error('Error creating pin:', err)
+      alert('Gagal membuat pin, coba lagi')
     } finally {
       setIsLoading(false)
     }
@@ -69,7 +67,7 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const handleClose = () => {
     reset()
     setImagePreview(null)
-    setTags([])  // reset tags juga
+    setTags([])
     onClose()
   }
 
@@ -115,7 +113,6 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
           rows={3}
         />
 
-        {/* Ganti Link URL jadi input tags */}
         <div>
           <label className="block mb-1 font-semibold">Tags</label>
           <input

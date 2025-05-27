@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getUserPins, getUserBoards, getUserActivity } from '../../lib/api/profile';
+import { getUserPins, getUserActivity } from '../../lib/api/profile';
 import UserPins from './UserPins';
-import UserBoards from './UserBoards';
 import UserActivity from './UserActivity';
 
 const ProfileContent = ({ userId, activeTab }) => {
@@ -17,9 +16,6 @@ const ProfileContent = ({ userId, activeTab }) => {
         switch (activeTab) {
           case 'pins':
             data = await getUserPins(userId);
-            break;
-          case 'boards':
-            data = await getUserBoards(userId);
             break;
           case 'activity':
             data = await getUserActivity(userId);
@@ -44,7 +40,6 @@ const ProfileContent = ({ userId, activeTab }) => {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       {activeTab === 'pins' && <UserPins pins={content} />}
-      {activeTab === 'boards' && <UserBoards boards={content} />}
       {activeTab === 'activity' && <UserActivity activities={content} />}
     </div>
   );

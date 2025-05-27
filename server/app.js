@@ -1,4 +1,5 @@
   const express = require('express');
+  const path = require('path');
   const cors = require('cors');
   const dotenv = require('dotenv');
   const knex = require('knex');
@@ -18,7 +19,6 @@
   // Import route handlers
   const userRoutes = require('./routes/users');
   const tagRoutes = require('./routes/tags');
-  const boardRoutes = require('./routes/boards');
   const pinRoutes = require('./routes/pins')(db);
   const { authenticate } = require('./middleware/auth');
 
@@ -76,11 +76,10 @@
   // Register routes with versioning and rate limiting
   app.use('/api/v1/users', apiLimiter, userRoutes(db));
   app.use('/api/v1/tags', authenticate, apiLimiter, tagRoutes(db));
-  app.use('/api/v1/boards', authenticate, apiLimiter, boardRoutes(db));
   app.use('/api/v1/pins', apiLimiter, pinRoutes);
 
   // Static files (for uploaded pin images)
-  app.use('/uploads', express.static('uploads'));
+  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
   // Enhanced error handling
   app.use((err, req, res, next) => {

@@ -1,7 +1,6 @@
 const ProfileSidebar = ({ user, activeTab, setActiveTab }) => {
   const tabs = [
     { id: 'pins', label: 'Pins' },
-    { id: 'boards', label: 'Boards' },
     { id: 'activity', label: 'Activity' },
   ];
 

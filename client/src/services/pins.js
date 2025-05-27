@@ -1,20 +1,20 @@
 import api from './api';
 
-// Get pins with pagination, search, and filtering
+// Helper untuk dapatkan token dan buat headers Authorization
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+// Get pins with pagination, search, filtering by category
 export const getPins = async (page = 1, limit = 30, category = '') => {
   try {
-    const token = localStorage.getItem('token');
     const params = { page, limit };
-    
-    if (category) {
-      params.category = category;
-    }
+    if (category) params.category = category;
 
     const response = await api.get('/pins', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      params
+      headers: getAuthHeaders(),
+      params,
     });
     return response.data;
   } catch (error) {
@@ -23,19 +23,12 @@ export const getPins = async (page = 1, limit = 30, category = '') => {
   }
 };
 
-// Search pins by query
+// Search pins by query string
 export const searchPins = async (query, page = 1, limit = 30) => {
   try {
-    const token = localStorage.getItem('token');
     const response = await api.get('/pins/search', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      params: {
-        query,
-        page,
-        limit
-      }
+      headers: getAuthHeaders(),
+      params: { query, page, limit },
     });
     return response.data;
   } catch (error) {
@@ -47,14 +40,9 @@ export const searchPins = async (query, page = 1, limit = 30) => {
 // Get a single pin by ID
 export const getPinById = async (id) => {
   try {
-    const token = localStorage.getItem('token');
-    console.log('Token used:', token);
     const response = await api.get(`/pins/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: getAuthHeaders(),
     });
-    
     return response.data;
   } catch (error) {
     console.error(`Failed to fetch pin with ID ${id}:`, error.response?.data || error.message);
@@ -62,18 +50,16 @@ export const getPinById = async (id) => {
   }
 };
 
-
-// Create a new pin
+// Create a new pin with FormData (title, description, tags as JSON string, image file)
 export const createPin = async (formData) => {
   try {
-    const token = localStorage.getItem('token');
+    // formData sudah berupa FormData instance (dari frontend)
     const response = await api.post('/pins', formData, {
       headers: {
+        ...getAuthHeaders(),
         'Content-Type': 'multipart/form-data',
-        Authorization: `Bearer ${token}`
       },
     });
-    
     return response.data;
   } catch (error) {
     console.error('Failed to create pin:', error.response?.data || error.message);
@@ -84,13 +70,9 @@ export const createPin = async (formData) => {
 // Like a pin
 export const likePin = async (pinId) => {
   try {
-    const token = localStorage.getItem('token');
     const response = await api.post(`/pins/${pinId}/like`, null, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: getAuthHeaders(),
     });
-    
     return response.data;
   } catch (error) {
     console.error(`Failed to like pin with ID ${pinId}:`, error.response?.data || error.message);
@@ -101,13 +83,9 @@ export const likePin = async (pinId) => {
 // Unlike a pin
 export const unlikePin = async (pinId) => {
   try {
-    const token = localStorage.getItem('token');
     const response = await api.delete(`/pins/${pinId}/like`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
+      headers: getAuthHeaders(),
     });
-    
     return response.data;
   } catch (error) {
     console.error(`Failed to unlike pin with ID ${pinId}:`, error.response?.data || error.message);
@@ -115,15 +93,12 @@ export const unlikePin = async (pinId) => {
   }
 };
 
-// Get popular pins
+// Get popular pins (limit)
 export const getPopularPins = async (limit = 10) => {
   try {
-    const token = localStorage.getItem('token');
     const response = await api.get('/pins/popular', {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      params: { limit }
+      headers: getAuthHeaders(),
+      params: { limit },
     });
     return response.data;
   } catch (error) {
@@ -132,15 +107,12 @@ export const getPopularPins = async (limit = 10) => {
   }
 };
 
-// Get pins by user
+// Get pins created by a user with pagination
 export const getUserPins = async (userId, page = 1, limit = 30) => {
   try {
-    const token = localStorage.getItem('token');
     const response = await api.get(`/users/${userId}/pins`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      params: { page, limit }
+      headers: getAuthHeaders(),
+      params: { page, limit },
     });
     return response.data;
   } catch (error) {

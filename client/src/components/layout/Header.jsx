@@ -12,7 +12,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo - Replaced Pinterest with Artery Project logo */}
           <div className="flex items-center">
             <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
               <svg
@@ -33,7 +32,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
             <span className="ml-2 font-bold text-xl hidden sm:inline">Artery Project</span>
           </div>
 
-          {/* Search Bar */}
           <div className="hidden md:flex flex-1 mx-4 max-w-xl">
             <div className="relative w-full">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -57,7 +55,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
             </div>
           </div>
 
-          {/* Navigation Icons */}
           <div className="flex items-center space-x-4">
             <button className="p-2 rounded-full hover:bg-gray-100 hidden sm:block">
               <FiBell className="text-gray-700 text-xl" />
@@ -80,7 +77,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
                     className="flex items-center"
                   >
-                    {/* Avatar placeholder */}
                     <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                       <FiUser className="text-gray-600" />
                     </div>
