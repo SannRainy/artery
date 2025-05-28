@@ -1,26 +1,39 @@
+// server/routes/pins.js
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { authenticate } = require('../middleware/auth.js');
 const fs = require('fs');
+const { authenticate } = require('../middleware/auth.js');
 
-// Setup multer untuk upload file ke folder 'uploads/'
+// Upload folder path
+const uploadPath = path.join(__dirname, '..', '..', 'public/uploads');
+
+// Ensure folder exists
+fs.mkdirSync(uploadPath, { recursive: true });
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
-    // Buat folder jika belum ada
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
-    }
-    cb(null, uploadDir);
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    // Nama file unik: timestamp + originalname
     const uniqueName = `${Date.now()}-${file.originalname}`;
     cb(null, uniqueName);
   }
 });
-const upload = multer({ storage });
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // max 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images are allowed.'));
+    }
+  }
+});
+
 
 module.exports = function (db) {
   const router = express.Router();
@@ -52,90 +65,60 @@ module.exports = function (db) {
     }
   });
 
-  // POST /pins - create new pin (multipart/form-data with image file)
-  router.post('/', authenticate, upload.single('image'), async (req, res) => {
-    const requestId = req.requestId;
-    const timestamp = new Date().toISOString();
-    const userId = req.user.id;
+  router.post('/', authenticate, upload.single('image_url'), async (req, res) => {
+  const requestId = req.requestId;
+  const timestamp = new Date().toISOString();
+  const userId = req.user.id;
 
-    try {
-      const { title, description, tags: tagsJson, link_url, board_id } = req.body;
+  try {
+    const { title, description, link_url, board_id } = req.body;
 
-      // Parse tags JSON string menjadi array, kalau kosong maka array kosong
-      let tags = [];
-      if (tagsJson) {
-        try {
-          tags = JSON.parse(tagsJson);
-          if (!Array.isArray(tags)) {
-            tags = [];
-          }
-        } catch {
-          tags = [];
-        }
-      }
-
-      // Simpan path file image jika ada file
-      let image_url = null;
-      if (req.file) {
-        // Contoh: simpan relative path agar bisa dipakai frontend
-        image_url = `/uploads/${req.file.filename}`;
-      }
-
-      // Insert data pin ke DB
-      const [pin] = await db('pins')
-        .insert({
-          title,
-          description,
-          image_url,
-          link_url,
-          user_id: userId,
-          created_at: new Date(),
-          updated_at: new Date()
-        })
-        .returning('*');
-
-      // Jika ada board_id, masukkan ke tabel relasi
-      if (board_id) {
-        await db('board_pins').insert({
-          board_id,
-          pin_id: pin.id
-        });
-      }
-
-      // Handle tags: insert tags baru jika belum ada, lalu relasikan dengan pin
-      if (tags.length > 0) {
-        const tagIds = await Promise.all(tags.map(async (tagName) => {
-          let tag = await db('tags')
-            .where('name', tagName.toLowerCase())
-            .first();
-
-          if (!tag) {
-            [tag] = await db('tags')
-              .insert({ name: tagName.toLowerCase() })
-              .returning('*');
-          }
-          return tag.id;
-        }));
-
-        await db('pin_tags').insert(tagIds.map(tag_id => ({
-          pin_id: pin.id,
-          tag_id
-        })));
-      }
-
-      res.status(201).json(pin);
-
-    } catch (err) {
-      console.error(`[${requestId}] Failed to create pin:`, err.message, err.stack);
-      res.status(500).json({
-        error: {
-          message: 'Failed to create pin',
-          requestId,
-          timestamp
-        }
-      });
+    // Validasi input
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ error: 'Title is required.' });
     }
-  });
+    if (!description || description.trim().length === 0) {
+      return res.status(400).json({ error: 'Description is required.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required.' });
+    }
+
+    const image_url = `/uploads/${req.file.filename}`;
+
+    const insertData = {
+      title: title.trim(),
+      description: description.trim(),
+      image_url,
+      link_url: link_url || null,
+      user_id: userId,
+      created_at: new Date(),
+      updated_at: new Date()
+    };
+
+    const [insertId] = await db('pins').insert(insertData);
+    const pin = await db('pins').where('id', insertId).first();
+
+    // Optional: cek board_id validitas sebelum insert ke board_pins
+
+    if (board_id) {
+      await db('board_pins').insert({ board_id, pin_id: pin.id });
+    }
+
+    res.status(201).json(pin);
+
+  } catch (err) {
+    console.error(`[${requestId}] Failed to create pin:`, err.message, err.stack);
+    res.status(500).json({
+      error: {
+        message: 'Failed to create pin',
+        requestId,
+        timestamp
+      }
+    });
+  }
+});
+
 
   return router;
 };

@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios' 
 
 // Helper untuk dapatkan token dan buat headers Authorization
 const getAuthHeaders = () => {
@@ -40,32 +41,22 @@ export const searchPins = async (query, page = 1, limit = 30) => {
 // Get a single pin by ID
 export const getPinById = async (id) => {
   try {
-    const response = await api.get(`/pins/${id}`, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+    const response = await api.get(`/pins/${id}`)
+    return response.data
   } catch (error) {
-    console.error(`Failed to fetch pin with ID ${id}:`, error.response?.data || error.message);
-    throw new Error('Failed to load pin details, please try again later.');
+    console.error(`Failed to fetch pin with ID ${id}:`, error.response?.data || error.message)
+    throw new Error('Failed to load pin details, please try again later.')
   }
 };
 
 // Create a new pin with FormData (title, description, tags as JSON string, image file)
-export const createPin = async (formData) => {
-  try {
-    // formData sudah berupa FormData instance (dari frontend)
-    const response = await api.post('/pins', formData, {
-      headers: {
-        ...getAuthHeaders(),
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Failed to create pin:', error.response?.data || error.message);
-    throw new Error('Failed to create pin, please try again later.');
-  }
-};
+export async function createPin(formData) {
+  return api.post('/pins', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
 
 // Like a pin
 export const likePin = async (pinId) => {

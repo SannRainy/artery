@@ -79,7 +79,12 @@
   app.use('/api/v1/pins', apiLimiter, pinRoutes);
 
   // Static files (for uploaded pin images)
-  app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+  const uploadsCorsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+  credentials: true,
+};
+
+  app.use('/uploads', cors(uploadsCorsOptions), express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
   // Enhanced error handling
   app.use((err, req, res, next) => {
@@ -149,3 +154,18 @@
     console.error('Uncaught Exception:', err);
     process.exit(1);
   });
+
+  // Di akhir file app.js
+const multer = require('multer'); // Pastikan ini di-import di atas
+
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    // Kesalahan spesifik dari Multer
+    return res.status(400).json({ error: err.message });
+  } else if (err) {
+    // Kesalahan umum lainnya
+    console.error('Unexpected Error:', err);
+    return res.status(500).json({ error: 'Terjadi kesalahan pada server' });
+  }
+  next();
+});

@@ -5,6 +5,8 @@ import { FaHeart, FaRegHeart, FaComment, FaShare } from 'react-icons/fa'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+
 export default function PinDetailModal({ pin, onClose }) {
   const { user } = useAuth()
   const [isLiked, setIsLiked] = useState(pin.is_liked)
@@ -57,7 +59,7 @@ export default function PinDetailModal({ pin, onClose }) {
             <div className="mt-4 flex flex-col md:flex-row gap-6">
               <div className="md:w-2/3">
                 <img
-                  src={pin.image_url}
+                  src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : '/img/default-pin.png'}
                   alt={pin.title}
                   className="w-full h-auto rounded-lg"
                 />

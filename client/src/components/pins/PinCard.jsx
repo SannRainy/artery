@@ -2,7 +2,9 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../../contexts/AuthContexts'
 import { likePin, unlikePin } from '../../services/pins'
-import { FaHeart, FaRegHeart, FaComment, FaShare } from 'react-icons/fa'
+import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa'
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'
 
 export default function PinCard({ pin }) {
   const { user } = useAuth()
@@ -29,10 +31,12 @@ export default function PinCard({ pin }) {
       <Link href={`/pins/${pin.id}`}>
         <div className="relative cursor-zoom-in">
           <img
-            src={pin.image_url || '../img/default-pin.png'} 
+            src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : '/img/default-pin.png'}
+            
             alt={pin.title || 'Pin image'}
             className="w-full h-auto object-cover"
           />
+
           <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300 flex items-end p-4">
             <div className="w-full">
               <h3 className="text-white font-bold text-lg drop-shadow-md">{pin.title}</h3>

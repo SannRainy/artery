@@ -9,67 +9,48 @@ import { createPin } from '../../services/pins'
 
 export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const { user } = useAuth()
-  const { register, handleSubmit, reset, formState: { errors } } = useForm()
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm()
   const [imagePreview, setImagePreview] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [tags, setTags] = useState([])
-
-  const handleTagKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ',') {
-      e.preventDefault()
-      const value = e.target.value.trim()
-      if (value && !tags.includes(value)) {
-        setTags([...tags, value])
-      }
-      e.target.value = ''
-    }
-  }
-
-  const removeTag = (tagToRemove) => {
-    setTags(tags.filter(tag => tag !== tagToRemove))
-  }
 
   const onSubmit = async (data) => {
-    try {
+    try { 
       setIsLoading(true)
       const formData = new FormData()
       formData.append('title', data.title)
-      formData.append('description', data.description || '')
-      formData.append('tags', JSON.stringify(tags))
-      if (data.image && data.image[0]) {
-        formData.append('image', data.image[0])
-      }
-      // Optional: kirim user id jika backend butuh
-      formData.append('user_id', user?.id)
+      formData.append('description', data.description)
+      formData.append('image_url', data.image_url[0])
 
-      const newPin = await createPin(formData)
-      onPinCreated(newPin)
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1])
+      }
+      await createPin(formData)
+      console.log('Pin created!')
+      onPinCreated && onPinCreated()
       handleClose()
-    } catch (err) {
-      console.error('Error creating pin:', err)
-      alert('Gagal membuat pin, coba lagi')
+    } catch (error) {
+      console.error('Error creating pin:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result)
-      }
-      reader.readAsDataURL(file)
-    }
+  const file = e.target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
   }
+};  
 
   const handleClose = () => {
-    reset()
-    setImagePreview(null)
-    setTags([])
-    onClose()
-  }
+  reset()
+  setImagePreview(null)
+  setValue('image_url', null)
+  onClose()
+}
+
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="Create New Pin">
@@ -84,58 +65,48 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
           ) : (
             <div className="text-center">
               <p className="text-gray-500 mb-2">Upload an image</p>
-              <label className="cursor-pointer bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition">
+              <label
+                htmlFor="image"
+                className="cursor-pointer bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition"
+              >
                 Select File
-                <input
+              </label>
+              <input
+                  id="image"  
                   type="file"
                   className="hidden"
                   accept="image/*"
-                  {...register('image', { required: 'Image is required' })}
+                  {...register('image_url', {
+                    required: 'Image is required',
+                    validate: {
+                      notEmpty: files => files && files.length > 0 || 'Image is required',
+                      isImage: files => files[0]?.type.startsWith('image/') || 'File must be an image',
+                      isSmall: files => files[0]?.size < 5 * 1024 * 1024 || 'Max file size is 5MB'
+                    }
+                  })}
                   onChange={handleImageChange}
                 />
-              </label>
+
             </div>
           )}
-          {errors.image && (
-            <p className="text-red-500 text-sm mt-2">{errors.image.message}</p>
+          {errors.image_url && (
+            <p className="text-red-500 text-sm mt-2">{errors.image_url.message}</p>
           )}
         </div>
 
         <Input
           label="Title"
+          id="title"
           {...register('title', { required: 'Title is required' })}
           error={errors.title}
         />
 
         <Textarea
           label="Description"
+          id="description"
           {...register('description')}
           rows={3}
         />
-
-        <div>
-          <label className="block mb-1 font-semibold">Tags</label>
-          <input
-            type="text"
-            placeholder="Tulis tag lalu tekan Enter atau koma"
-            onKeyDown={handleTagKeyDown}
-            className="border rounded px-3 py-2 w-full"
-          />
-          <div className="flex flex-wrap gap-2 mt-2">
-            {tags.map(tag => (
-              <span key={tag} className="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center space-x-2">
-                <span>{tag}</span>
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="font-bold"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-          </div>
-        </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <Button
