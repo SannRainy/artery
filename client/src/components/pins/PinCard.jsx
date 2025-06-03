@@ -1,62 +1,88 @@
-import { useState } from 'react'
-import Link from 'next/link'
-import { useAuth } from '../../contexts/AuthContexts'
-import { likePin, unlikePin } from '../../services/pins'
-import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa'
+// client/src/components/pins/PinCard.jsx
+import { useState, useEffect } from 'react'; // useEffect ditambahkan jika state perlu disinkronkan dari prop pin yang berubah
+import Link from 'next/link';
+import { useAuth } from '../../contexts/AuthContexts';
+import { likePin, unlikePin } from '../../services/pins'; // Pastikan path dan fungsi ini benar
+import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
 export default function PinCard({ pin }) {
-  const { user } = useAuth()
-  const [isLiked, setIsLiked] = useState(pin.is_liked)
-  const [likeCount, setLikeCount] = useState(pin.like_count)
+  const { user } = useAuth();
+  const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
+  const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
 
-  const handleLike = async () => {
+  // Sinkronisasi state jika prop pin berubah (misalnya, setelah data di-refresh di parent)
+  useEffect(() => {
+    setIsLiked(pin?.is_liked || false);
+    setLikeCount(pin?.like_count || 0);
+  }, [pin?.is_liked, pin?.like_count]);
+
+
+  const handleLike = async (e) => {
+    e.stopPropagation(); // Mencegah navigasi jika tombol ada di dalam Link
+    e.preventDefault();  // Mencegah perilaku default jika di dalam anchor
+
+    if (!user) return;
+
+    const originalIsLiked = isLiked;
+    const originalLikeCount = likeCount;
+
+    // Optimistic UI update
+    setIsLiked(!originalIsLiked);
+    setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
+
     try {
-      if (isLiked) {
-        await unlikePin(pin.id)
-        setLikeCount((prevCount) => prevCount - 1)
+      // API call sekarang akan menggunakan POST /pins/:pinId/like yang bersifat toggle
+      const response = await likePin(pin.id); // atau bisa juga buat fungsi toggleLike(pin.id) di service
+
+      // Update state dari respons server untuk memastikan konsistensi
+      if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
+        setIsLiked(response.liked);
+        setLikeCount(response.new_like_count);
       } else {
-        await likePin(pin.id)
-        setLikeCount((prevCount) => prevCount + 1)
+        // Jika respons tidak sesuai, rollback atau refresh data pin
+        console.warn("Like/unlike response did not contain expected data, consider refetching pin details or rolling back optimistic update more reliably.");
+        // Untuk kasus sederhana, rollback:
+        // setIsLiked(originalIsLiked);
+        // setLikeCount(originalLikeCount);
       }
-      setIsLiked((prevState) => !prevState)
     } catch (err) {
-      console.error('Error toggling like:', err)
+      console.error('Error toggling like:', err);
+      setIsLiked(originalIsLiked); // Rollback jika error
+      setLikeCount(originalLikeCount);
+      // Tambahkan notifikasi error untuk pengguna jika perlu
     }
-  }
+  };
+
+  // Fallback jika pin atau pin.user tidak ada
+  if (!pin) return null;
+  const pinUser = pin.user || {};
 
   return (
     <div className="mb-6 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
-      <Link href={`/pins/${pin.id}`}>
-        <div className="relative cursor-zoom-in">
+      <Link href={`/pins/${pin.id}`} legacyBehavior>
+        <a className="relative cursor-zoom-in block">
           <img
-            src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : '/img/default-pin.png'}
-            
+            src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
             alt={pin.title || 'Pin image'}
-            className="w-full h-auto object-cover"
+            className="w-full h-auto object-cover aspect-[3/4]" // Contoh aspect ratio
           />
-
-          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300 flex items-end p-4">
-            <div className="w-full">
-              <h3 className="text-white font-bold text-lg drop-shadow-md">{pin.title}</h3>
-              {pin.description && (
-                <p className="text-white text-sm line-clamp-2 drop-shadow-md">
-                  {pin.description}
-                </p>
-              )}
-            </div>
+          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 flex flex-col justify-end p-3">
+            <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
+            {/* Deskripsi bisa ditampilkan di sini jika diinginkan, atau hanya pada hover */}
           </div>
-        </div>
+        </a>
       </Link>
 
       <div className="p-3">
-        <div className="flex justify-between items-center mb-2 sm:flex-col sm:items-start">
-          {/* Display tags if available */}
-          {pin.tags?.length > 0 && (
-            <div className="flex items-center space-x-2">
+        {/* Bagian atas (judul singkat atau tag) bisa dihilangkan jika sudah ada di overlay gambar */}
+        {/* <h3 className="font-semibold text-gray-800 truncate mb-1">{pin.title}</h3> */}
+
+        {pin.tags && pin.tags.length > 0 && (
+            <div className="flex items-center space-x-1 flex-wrap mb-2">
               {pin.tags.slice(0, 2).map((tag) => (
-                <span key={tag.id} className="bg-gray-100 text-xs px-2 py-1 rounded-full">
+                tag && tag.name && <span key={tag.id} className="text-xs text-gray-500 hover:text-primary">
                   #{tag.name}
                 </span>
               ))}
@@ -66,43 +92,43 @@ export default function PinCard({ pin }) {
             </div>
           )}
 
-          <div className="flex space-x-3">
-            {/* Like button */}
+        <div className="flex justify-between items-center">
+          <Link href={`/users/${pin.user_id || pinUser.id}`} legacyBehavior>
+            <a className="flex items-center space-x-2 group">
+              <img
+                src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/img/default-avatar.png')}
+                alt={pinUser.username || 'User avatar'}
+                className="w-6 h-6 rounded-full object-cover"
+              />
+              <span className="text-xs font-medium text-gray-700 group-hover:text-primary">{pinUser.username || 'Anonymous'}</span>
+            </a>
+          </Link>
+          
+          <div className="flex items-center space-x-3">
             <button
               onClick={handleLike}
               disabled={!user}
-              className={`flex items-center space-x-1 ${!user ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`flex items-center space-x-1 ${!user ? 'opacity-50 cursor-not-allowed' : 'text-gray-500 hover:text-red-500'}`}
+              aria-pressed={isLiked}
+              title={isLiked ? "Unlike" : "Like"}
             >
               {isLiked ? (
                 <FaHeart className="text-red-500" />
               ) : (
-                <FaRegHeart className="text-gray-500" />
+                <FaRegHeart />
               )}
               <span className="text-xs">{likeCount}</span>
             </button>
 
-            {/* Comment button */}
-            <Link href={`/pins/${pin.id}#comments`}>
-              <div className="flex items-center space-x-1">
-                <FaComment className="text-gray-500" />
+            <Link href={`/pins/${pin.id}#comments`} legacyBehavior>
+              <a className="flex items-center space-x-1 text-gray-500 hover:text-primary">
+                <FaComment />
                 <span className="text-xs">{pin.comment_count || 0}</span>
-              </div>
+              </a>
             </Link>
           </div>
         </div>
-
-        {/* User profile */}
-        <Link href={`/users/${pin.user_id}`}>
-          <div className="flex items-center space-x-2 cursor-pointer">
-            <img
-              src={pin.user?.avatar_url || '/img/default-avatar.png'}
-              alt={pin.user?.username}
-              className="w-6 h-6 rounded-full object-cover"
-            />
-            <span className="text-sm font-medium">{pin.user?.username}</span>
-          </div>
-        </Link>
       </div>
     </div>
-  )
+  );
 }

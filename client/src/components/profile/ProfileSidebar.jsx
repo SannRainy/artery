@@ -1,18 +1,18 @@
-const ProfileSidebar = ({ user, activeTab, setActiveTab }) => {
-  const tabs = [
-    { id: 'pins', label: 'Pins' },
-    { id: 'activity', label: 'Activity' },
+const ProfileSidebar = ({ user, activeTab, setActiveTab }) => { //
+  const tabs = [ //
+    { id: 'pins', label: 'Pins' }, //
+    { id: 'activity', label: 'Activity' }, //
   ];
 
   return (
     <div className="bg-white rounded-lg shadow p-4 sticky top-4">
       <div className="space-y-1">
-        {tabs.map((tab) => (
+        {tabs.map((tab) => ( //
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            key={tab.id} //
+            onClick={() => setActiveTab(tab.id)} //
             className={`flex items-center gap-3 w-full px-4 py-2 rounded-lg transition ${
-              activeTab === tab.id
+              activeTab === tab.id //
                 ? 'bg-primary text-white'
                 : 'text-gray-700 hover:bg-gray-100'
             }`}
@@ -27,9 +27,9 @@ const ProfileSidebar = ({ user, activeTab, setActiveTab }) => {
         <ul className="space-y-2 text-sm text-gray-600">
           <li className="flex items-center gap-2">
             <span className="font-medium">Joined:</span>
-            <span>{new Date(user.created_at).toLocaleDateString()}</span>
+            <span>{new Date(user.created_at).toLocaleDateString()}</span> 
           </li>
-          {user.bio && (
+          {user.bio && ( //
             <li className="flex items-center gap-2">
               <span className="font-medium">Bio:</span>
               <span>{user.bio}</span>

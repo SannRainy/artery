@@ -1,41 +1,41 @@
 import { useState, useEffect } from 'react';
-import { getUserPins, getUserActivity } from '../../lib/api/profile';
-import UserPins from './UserPins';
-import UserActivity from './UserActivity';
+import { getUserPins, getUserActivity } from '../../lib/api/profile'; //
+import UserPins from './UserPins'; //
+import UserActivity from './UserActivity'; //
 
-const ProfileContent = ({ userId, activeTab }) => {
-  const [content, setContent] = useState(null);
-  const [loading, setLoading] = useState(true);
+const ProfileContent = ({ userId, activeTab }) => { //
+  const [content, setContent] = useState(null); //
+  const [loading, setLoading] = useState(true); //
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        setLoading(true);
+        setLoading(true); //
         let data;
         
-        switch (activeTab) {
+        switch (activeTab) { //
           case 'pins':
-            data = await getUserPins(userId);
+            data = await getUserPins(userId); //
             break;
           case 'activity':
-            data = await getUserActivity(userId);
+            data = await getUserActivity(userId); //
             break;
           default:
-            data = await getUserPins(userId);
+            data = await getUserPins(userId); //
         }
         
-        setContent(data);
+        setContent(data); //
       } catch (error) {
-        console.error('Error fetching content:', error);
+        console.error('Error fetching content:', error); //
       } finally {
-        setLoading(false);
+        setLoading(false); //
       }
     };
 
     fetchContent();
-  }, [userId, activeTab]);
+  }, [userId, activeTab]); //
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return <div className="text-center py-8">Loading...</div>; //
 
   return (
     <div className="bg-white rounded-lg shadow p-6">

@@ -5,35 +5,35 @@ import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileContent from '../../components/profile/ProfileContent';
 import ProfileSidebar from '../../components/profile/ProfileSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getUserProfile } from '../../lib/api/profile';
+import { getUserProfile } from '../../lib/api/profile'; //.js]
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { id } = router.query;
-  const { user } = useAuth();
-  const [profileUser, setProfileUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pins');
+  const { id } = router.query; //.js]
+  const { user } = useAuth(); //.js]
+  const [profileUser, setProfileUser] = useState(null); //.js]
+  const [loading, setLoading] = useState(true); //.js]
+  const [activeTab, setActiveTab] = useState('pins'); //.js]
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
-        const data = await getUserProfile(id);
-        setProfileUser(data);
+        const data = await getUserProfile(id); //.js]
+        setProfileUser(data); //.js]
       } catch (error) {
-        console.error('Error fetching user profile:', error);
-        router.push('/404');
+        console.error('Error fetching user profile:', error); //.js]
+        router.push('/404'); //.js]
       } finally {
-        setLoading(false);
+        setLoading(false); //.js]
       }
     };
 
-    if (id) {
+    if (id) { //.js]
       fetchUserProfile();
     }
-  }, [id, router]);
+  }, [id, router]); //.js]
 
-  if (loading || !profileUser) {
+  if (loading || !profileUser) { //.js]
     return (
       <div className="flex justify-center items-center h-screen">
         <LoadingSpinner />
