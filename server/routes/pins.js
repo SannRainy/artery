@@ -1,4 +1,3 @@
-// server/routes/pins.js
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -193,14 +192,14 @@ module.exports = function (db) {
       // const insertedPin = await db('pins').where('id', insertId).first();
 
       if (!insertedPin) {
-         console.error(`[${requestId}] [${timestamp}] Failed to retrieve pin after insert.`);
-         return res.status(500).json({
-           error: {
-             message: 'Failed to create pin: could not retrieve created pin.',
-             requestId,
-             timestamp
-           }
-         });
+          console.error(`[${requestId}] [${timestamp}] Failed to retrieve pin after insert.`);
+          return res.status(500).json({
+            error: {
+              message: 'Failed to create pin: could not retrieve created pin.',
+              requestId,
+              timestamp
+            }
+          });
       }
 
       res.status(201).json(insertedPin);

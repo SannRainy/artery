@@ -377,7 +377,7 @@ module.exports = function (db) {
     const timestamp = new Date().toISOString();
 
     try {
-      if (req.params.id === req.user.id) {
+      if (req.params.id == req.user.id) { // Use == for loose comparison if req.params.id is string
         return res.status(400).json({
           error: {
             message: 'Cannot follow yourself',

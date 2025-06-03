@@ -7,17 +7,19 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config) => {
+    // Ambil token dari localStorage jika ada (pastikan hanya di browser)
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // Special handling for FormData requests
+
+    // Jika data bertipe FormData, set header Content-Type khusus dan matikan transformRequest default
     if (config.data instanceof FormData) {
       config.headers['Content-Type'] = 'multipart/form-data';
-      config.transformRequest = (data) => data; // Disable JSON transformation
+      config.transformRequest = (data) => data; // Disable JSON serialization
     }
-    
+
     return config;
   },
   (error) => Promise.reject(error)
@@ -28,6 +30,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
+      // Hapus token dari localStorage jika unauthorized
       localStorage.removeItem('token');
     }
     return Promise.reject(error);

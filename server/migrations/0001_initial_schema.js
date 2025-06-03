@@ -16,9 +16,9 @@ exports.up = async (knex) => {
     table.increments('id').primary();
     table.string('title', 100).notNullable();
     table.string('description', 1000); // Added, assuming nullable
-    table.string('image_url', 255).notNullable(); // Corrected from 'image' to 'image_url'
+    table.string('image_url', 255).notNullable(); // Renamed from 'image' to 'image_url' to match route logic
     table.string('link_url', 255); // Added, assuming nullable
-    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE').notNullable(); // user_id should probably be notNullable
+    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE').notNullable();
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
   });
@@ -33,8 +33,8 @@ exports.up = async (knex) => {
   // Table: pin_tags (Junction table - Added)
   await knex.schema.createTable('pin_tags', (table) => {
     table.increments('id').primary();
-    table.integer('pin_id').unsigned().references('id').inTable('pins').onDelete('CASCADE');
-    table.integer('tag_id').unsigned().references('id').inTable('tags').onDelete('CASCADE');
+    table.integer('pin_id').unsigned().references('id').inTable('pins').onDelete('CASCADE').notNullable();
+    table.integer('tag_id').unsigned().references('id').inTable('tags').onDelete('CASCADE').notNullable();
     table.unique(['pin_id', 'tag_id']); // Prevent duplicate tag assignments
     table.timestamp('created_at').defaultTo(knex.fn.now());
   });
