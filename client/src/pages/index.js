@@ -39,18 +39,20 @@ export default function Home() {
   ];
 
   // Fetch pins from backend depending on page, search query, and category
-  const fetchPins = useCallback(async (pageNum = 1, query = '', category = 'Semua') => {
+  const fetchPins = useCallback(async (pageNum = 1, currentQuery = '', currentCategory = 'Semua') => {
     try {
       setLoading(true);
       setError(null);
 
       let data;
-      if (query) {
-        data = await searchPins(query, pageNum);
-      } else if (category !== 'Semua') {
-        data = await getPins(pageNum, category);
+      const currentLimit = 30; // Atau ambil dari state jika limit bisa diubah pengguna
+
+      if (currentQuery) {
+        // Asumsi searchPins menerima (query, pageNum, limit)
+        data = await searchPins(currentQuery, pageNum, currentLimit);
       } else {
-        data = await getPins(pageNum);
+        // Panggil getPins dengan urutan parameter yang benar: (page, limit, category)
+        data = await getPins(pageNum, currentLimit, currentCategory === 'Semua' ? '' : currentCategory);
       }
 
       const processedData = Array.isArray(data) ? data : [];

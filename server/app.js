@@ -109,6 +109,11 @@ app.use('/api/v1/pins', pinRoutes); // pinRoutes sudah diinisialisasi dengan db
 
 // Static files (for uploaded pin images)
 // CORS untuk static files mungkin perlu disesuaikan jika berbeda dari generalCorsOptions
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
+
 const uploadsStaticPath = path.join(__dirname, '..', 'public', 'uploads');
 console.log(`Serving static files for /uploads from: ${uploadsStaticPath}`);
 app.use('/uploads', express.static(uploadsStaticPath));
