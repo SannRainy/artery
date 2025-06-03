@@ -14,26 +14,27 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const [isLoading, setIsLoading] = useState(false)
 
   const onSubmit = async (data) => {
-    try { 
-      setIsLoading(true)
-      const formData = new FormData()
-      formData.append('title', data.title)
-      formData.append('description', data.description)
-      formData.append('image_url', data.image_url[0])
-
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1])
-      }
-      await createPin(formData)
-      console.log('Pin created!')
-      onPinCreated && onPinCreated()
-      handleClose()
-    } catch (error) {
-      console.error('Error creating pin:', error)
-    } finally {
-      setIsLoading(false)
+  try {
+    setIsLoading(true);
+    const formData = new FormData();
+    
+    formData.append('title', data.title);
+    formData.append('description', data.description || '');
+    
+    if (data.image_url && data.image_url[0]) {
+      formData.append('image_url', data.image_url[0]);
     }
+
+    await createPin(formData);
+    onPinCreated?.();
+    handleClose();
+  } catch (error) {
+    console.error('Submission error:', error);
+    alert(error.message);
+  } finally {
+    setIsLoading(false);
   }
+};
 
   const handleImageChange = (e) => {
   const file = e.target.files?.[0];

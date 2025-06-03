@@ -1,10 +1,36 @@
-import api from './api';
-import axios from 'axios' 
 
+import api from './api';
 // Helper untuk dapatkan token dan buat headers Authorization
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const createPin = async (formData) => {
+  try {
+    // Debug FormData before sending
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
+
+    const response = await api.post('/pins', formData, {
+      // Headers are now automatically handled by the interceptor
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error creating pin:', {
+      message: error.message,
+      response: error.response?.data,
+      config: error.config
+    });
+    
+    throw new Error(
+      error.response?.data?.error || 
+      error.response?.data?.message || 
+      'Failed to create pin'
+    );
+  }
 };
 
 // Get pins with pagination, search, filtering by category
@@ -48,16 +74,6 @@ export const getPinById = async (id) => {
     throw new Error('Failed to load pin details, please try again later.')
   }
 };
-
-// Create a new pin with FormData (title, description, tags as JSON string, image file)
-export async function createPin(formData) {
-  return api.post('/pins', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-}
-
 // Like a pin
 export const likePin = async (pinId) => {
   try {
