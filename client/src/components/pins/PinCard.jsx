@@ -1,8 +1,9 @@
 // client/src/components/pins/PinCard.jsx
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
-import { likePin, unlikePin } from '../../services/pins';
+import { likePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
@@ -50,7 +51,7 @@ export default function PinCard({ pin }) {
 
   return (
     <div className="mb-6 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300 bg-white">
-      {/* PERUBAHAN 1: Hilangkan legacyBehavior dan <a> wrapper */}
+      
       <Link href={`/pins/${pin.id}`} className="relative cursor-zoom-in block">
         <img
           src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
@@ -77,7 +78,7 @@ export default function PinCard({ pin }) {
           )}
 
         <div className="flex justify-between items-center">
-          {/* PERUBAHAN 2: Hilangkan legacyBehavior dan <a> wrapper */}
+          
           <Link href={`/users/${pin.user_id || pinUser.id}`} className="flex items-center space-x-2 group">
             <img
               src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/img/default-avatar.png')}

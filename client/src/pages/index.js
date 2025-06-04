@@ -207,13 +207,12 @@ export default function Home() {
         <MasonryLayout columns={4} gap={4}>
           {Array.isArray(pins) &&
             pins.map((pin, index) => (
-              // Jika PinCard adalah komponen, pastikan ia memiliki key unik dari datanya
-              <div
-                key={pin.id} // Pastikan pin.id unik
-                ref={index === pins.length - 1 ? lastPinRef : null}
-              >
-                <PinCard pin={pin} />
-              </div>
+              
+              <PinCard
+                key={pin.id} // Pastikan pin.id unik dan stabil
+                pin={pin}
+                ref={index === pins.length - 1 ? lastPinRef : null} // ref untuk infinite scroll
+              />
             ))}
         </MasonryLayout>
 
