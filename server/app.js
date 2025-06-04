@@ -8,19 +8,14 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
 const { v4: uuidv4 } = require('uuid');
-const multer = require('multer'); // Pastikan multer diimpor di atas
+const multer = require('multer'); 
 
-// Load environment variables
-dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Lebih eksplisit path ke .env
+dotenv.config({ path: path.resolve(__dirname, '../.env') }); 
 
-// Initialize database connection
-// Pastikan knexfile.js ada di direktori yang benar atau sesuaikan path
-const knexConfig = require('./knexfile'); // Asumsi knexfile.js ada di ./server/knexfile.js
+const knexConfig = require('./knexfile');
 const dbEnvironment = process.env.NODE_ENV || 'development';
 const db = knex(knexConfig[dbEnvironment]);
 
-// Import route handlers
-// Pastikan path ke middleware/auth.js benar
 const { authenticate } = require('./middleware/auth');
 const userRoutes = require('./routes/users');
 const tagRoutes = require('./routes/tags');
@@ -30,20 +25,16 @@ const app = express();
 const PORT = process.env.PORT || 3000; // Seringkali API berjalan di port berbeda dari frontend
 
 // --- Middleware Esensial ---
-// Enhanced security middleware (sebaiknya paling atas)
 app.use(helmet());
 
 // Compression middleware
 app.use(compression());
 
-// Add request ID for better tracing (sebelum logging agar ID ada di log)
 app.use((req, res, next) => {
   req.requestId = uuidv4();
   next();
 });
 
-// Request logging (setelah requestId agar ID tercatat)
-// 'dev' lebih ringkas untuk development, 'combined' untuk production
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // CORS configuration (sebelum routes)
@@ -74,8 +65,6 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter); // Terapkan limiter ke semua rute /api
 
-// --- Routes ---
-// Health check endpoint (tidak perlu rate limit atau auth)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
@@ -85,8 +74,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API documentation endpoint (jika ada)
-// Pastikan file api-docs.html ada di direktori yang benar
 const apiDocsPath = path.join(__dirname, 'api-docs.html');
 try {
     if (require('fs').existsSync(apiDocsPath)) {
@@ -100,15 +87,10 @@ try {
     console.warn('Could not check for API documentation file:', e.message);
 }
 
+app.use('/api/v1/users', userRoutes(db));
+app.use('/api/v1/tags', authenticate, tagRoutes(db)); 
+app.use('/api/v1/pins', pinRoutes); 
 
-// Register routes with versioning
-// userRoutes mungkin tidak perlu db jika menggunakan ORM yang mengelola koneksi sendiri
-app.use('/api/v1/users', userRoutes(db)); // Jika userRoutes memang butuh db
-app.use('/api/v1/tags', authenticate, tagRoutes(db)); // authenticate middleware sebelum tagRoutes
-app.use('/api/v1/pins', pinRoutes); // pinRoutes sudah diinisialisasi dengan db
-
-// Static files (for uploaded pin images)
-// CORS untuk static files mungkin perlu disesuaikan jika berbeda dari generalCorsOptions
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
@@ -118,15 +100,12 @@ const uploadsStaticPath = path.join(__dirname, '..', 'public', 'uploads');
 console.log(`Serving static files for /uploads from: ${uploadsStaticPath}`);
 app.use('/uploads', express.static(uploadsStaticPath));
 
-
-// --- Error Handling Middleware (harus paling akhir) ---
 app.use((err, req, res, next) => {
   console.error(`[${req.requestId || 'N/A'}] Error encountered:`, err);
 
   let statusCode = err.statusCode || 500;
   let message = err.message || 'An unexpected error occurred on the server.';
 
-  // Penanganan spesifik untuk error Multer
   if (err instanceof multer.MulterError) {
     statusCode = 400; // Bad Request
     switch (err.code) {
