@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Image from 'next/image';
+import { useRouter } from 'next/router';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
 import Input from '../ui/Input';
@@ -11,6 +12,7 @@ import Button from '../ui/Button';
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
 export default function EditProfileForm({ currentUser, onProfileUpdated }) {
+  const router = useRouter();
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isDirty } } = useForm({
     defaultValues: {
       username: currentUser?.username || '',
@@ -97,12 +99,13 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
         onProfileUpdated(response.data); // Panggil callback untuk merefresh data user di AuthContext
       }
       setNewAvatarFile(null); 
-      // `reset` di sini akan mengisi ulang form dengan data dari server, termasuk avatar_url baru
-      // `useEffect` di atas juga akan menangani update `avatarPreview` berdasarkan `currentUser` baru dari context
+
       reset({ 
         ...response.data, 
         avatar_url: response.data.avatar_url // Pastikan field avatar_url juga di-reset
       }); 
+
+      router.push(`/users/${currentUser.id}`);
       
     } catch (error) {
       console.error("Error updating profile:", error.response?.data || error.message);
@@ -112,8 +115,6 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
     }
   };
 
-  // Logika untuk menentukan URL gambar yang akan ditampilkan oleh <Image>
-  // currentFormAvatarUrl adalah nilai dari field 'avatar_url' di form, yang diupdate dari currentUser
   let imageSrcForDisplay = '/img/default-avatar.png'; // Default absolut
   if (newAvatarFile) {
     imageSrcForDisplay = avatarPreview; // Jika ada file baru dipilih, gunakan preview base64 nya

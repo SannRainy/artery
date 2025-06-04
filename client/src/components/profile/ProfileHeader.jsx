@@ -1,6 +1,6 @@
 // client/src/components/profile/ProfileHeader.jsx
 import Image from 'next/image';
-import { FiEdit, FiHome } from 'react-icons/fi'; // Tambahkan FiHome
+import { FiEdit, FiHome } from 'react-icons/fi'; // Pastikan FiHome diimpor
 import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
@@ -40,7 +40,7 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
             <h1 className="text-2xl font-bold text-gray-900">{user?.username || 'User'}</h1>
             {user?.bio && <p className="mt-2 text-gray-700">{user.bio}</p>}
             
-            <div className="flex justify-center md:justify-start gap-8 sm:gap-12 mt-4"> {/* Penyesuaian gap untuk mobile */}
+            <div className="flex justify-center md:justify-start gap-8 sm:gap-12 mt-4">
               <div className="text-center">
                 <span className="font-bold block text-sm sm:text-base">{user?.pinsCount || 0}</span>
                 <span className="text-gray-600 text-xs sm:text-sm">Pins</span>
@@ -57,17 +57,30 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
           </div>
           
           {/* Tombol Aksi */}
-          <div className="mt-4 md:mt-0">
-            {isCurrentUser ? (
-              <Link href="/settings/profile" className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm sm:text-base">
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 md:mt-0">
+            {/* Tombol Beranda akan selalu ada jika Anda mau, atau kondisional */}
+            <Link 
+              href="/" 
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm sm:text-base w-full sm:w-auto justify-center"
+            >
+              <FiHome /> Beranda
+            </Link>
+
+            {isCurrentUser && (
+              <Link 
+                href="/settings/profile" 
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm sm:text-base w-full sm:w-auto justify-center"
+              >
                 <FiEdit /> Edit Profile
               </Link>
-            ) : (
-
-              <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm sm:text-base">
-                <FiHome /> Beranda
-              </Link>
-
+            )}
+               {!isCurrentUser && user && (
+              <button 
+                // onClick={handleFollow} 
+                className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm sm:text-base w-full sm:w-auto justify-center"
+              >
+                { isFollowing ? 'Unfollow' : 'Follow' }
+              </button>
             )}
           </div>
         </div>
