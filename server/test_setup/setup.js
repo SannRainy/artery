@@ -3,6 +3,7 @@ const knex = require('knex');
 const knexConfig = require('../knexfile'); // Pastikan path ini benar
 const fs = require('fs');
 const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') }); 
 
 const dbInstance = knex(knexConfig.test); // Gunakan konfigurasi database test
 
