@@ -4,5 +4,6 @@
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
   "/users/[id]": "pages/users/[id].js",
-  "/settings/profile": "pages/settings/profile.js"
+  "/settings/profile": "pages/settings/profile.js",
+  "/login": "pages/login.js"
 }

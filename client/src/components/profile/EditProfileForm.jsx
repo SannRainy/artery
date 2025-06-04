@@ -96,13 +96,13 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
 
       toast.success('Profil berhasil diperbarui!');
       if (onProfileUpdated && typeof onProfileUpdated === 'function') {
-        onProfileUpdated(response.data); // Panggil callback untuk merefresh data user di AuthContext
+        onProfileUpdated(response.data);
       }
       setNewAvatarFile(null); 
 
       reset({ 
         ...response.data, 
-        avatar_url: response.data.avatar_url // Pastikan field avatar_url juga di-reset
+        avatar_url: response.data.avatar_url 
       }); 
 
       router.push(`/users/${currentUser.id}`);
