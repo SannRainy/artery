@@ -112,9 +112,7 @@ module.exports = function (db) {
           
           let is_liked_by_current_user = false;
           if (req.user && req.user.id) {
-            // Ini perlu query async, jadi idealnya dilakukan dalam Promise.all jika performa jadi isu
-            // Untuk kesederhanaan, kita tidak akan query is_liked di sini untuk daftar pin.
-            // Client bisa cek is_liked secara individual jika diperlukan, atau Anda bisa menambahkannya nanti.
+
           }
 
           return {

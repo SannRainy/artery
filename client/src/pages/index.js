@@ -9,15 +9,15 @@ import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   // Redirect to login if user not authenticated
   useEffect(() => {
-    if (user === null) {
-      router.replace('/login');
+    if (!authLoading && !user) {
+      router.replace('/login'); //
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,38 +40,64 @@ export default function Home() {
 
   // Fetch pins from backend depending on page, search query, and category
   const fetchPins = useCallback(async (pageNum = 1, currentQuery = '', currentCategory = 'Semua') => {
-    try {
-      setLoading(true);
-      setError(null);
+    // Hanya fetch jika user sudah dimuat (untuk menghindari fetch ganda atau tanpa user context jika diperlukan server)
+    // Atau, jika halaman ini memang untuk publik, kondisi user bisa dihilangkan
+    // dan server GET /pins tidak memerlukan autentikasi.
+    if (!user && !authLoading) { // Jika auth sudah selesai loading dan tidak ada user, jangan fetch
+        setLoading(false); // Hentikan loading pins
+        // setPins([]); // Kosongkan pins jika user tidak ada dan halaman ini private
+        return;
+    }
+    if (authLoading) { // Jika auth masih loading, tunggu
+        setLoading(true);
+        return;
+    }
 
-      let data;
-      const currentLimit = 30; // Atau ambil dari state jika limit bisa diubah pengguna
+
+    setLoading(true); //
+    setError(null); //
+
+    try {
+      let apiResponse;
+      const currentLimit = 30; //
 
       if (currentQuery) {
-        // Asumsi searchPins menerima (query, pageNum, limit)
-        data = await searchPins(currentQuery, pageNum, currentLimit);
+        apiResponse = await searchPins(currentQuery, pageNum, currentLimit); //
       } else {
         // Panggil getPins dengan urutan parameter yang benar: (page, limit, category)
-        data = await getPins(pageNum, currentLimit, currentCategory === 'Semua' ? '' : currentCategory);
+        apiResponse = await getPins(pageNum, currentLimit, currentCategory === 'Semua' ? '' : currentCategory); //
       }
 
-      const processedData = Array.isArray(data) ? data : [];
+      // console.log('API Response from service (fetchPins):', apiResponse);
+
+      // PASTIKAN ANDA MENGAKSES .data DARI OBJEK apiResponse
+      const pinsArray = apiResponse && apiResponse.data ? apiResponse.data : []; //
+      const processedData = Array.isArray(pinsArray) ? pinsArray : []; //
+      
+      // console.log('Processed pins array for state (fetchPins):', processedData);
 
       if (pageNum === 1) {
-        setPins(processedData);
+        setPins(processedData); //
       } else {
-        setPins(prevPins => [...prevPins, ...processedData]);
+        setPins(prevPins => [...prevPins, ...processedData]); //
       }
 
-      setHasMore(processedData.length > 0);
+      // Cek pagination info dari apiResponse untuk setHasMore dengan lebih akurat
+      const pagination = apiResponse && apiResponse.pagination; //
+      if (pagination) { //
+        setHasMore(pageNum < pagination.totalPages); //
+      } else { //
+        setHasMore(processedData.length > 0); // Fallback jika pagination tidak ada
+      }
+
     } catch (err) {
-      console.error('Error fetching pins:', err);
-      setError('Gagal memuat pin. Silakan coba lagi nanti.');
-      setHasMore(false);
+      console.error('Error fetching pins:', err); //
+      setError('Gagal memuat pin. Silakan coba lagi nanti.'); //
+      setHasMore(false); //
     } finally {
-      setLoading(false);
+      setLoading(false); //
     }
-  }, []);
+  }, [user, authLoading]);
 
   // IntersectionObserver untuk infinite scroll
   const lastPinRef = useCallback(
@@ -105,16 +131,34 @@ export default function Home() {
 
   // Fetch pins ketika page, searchQuery, activeCategory, atau user berubah
   useEffect(() => {
-    if (user) {
-      fetchPins(page, searchQuery, activeCategory);
+    
+    if (!authLoading) { // Tunggu auth selesai loading dulu
+        if (user) { // Jika user ada, fetch
+            fetchPins(page, searchQuery, activeCategory);
+        } else {
+            
+            setPins([]); // Kosongkan pins jika halaman ini private dan user tidak ada
+            setLoading(false);
+        }
     }
-  }, [page, searchQuery, activeCategory, fetchPins, user]);
+  }, [page, searchQuery, activeCategory, fetchPins, user, authLoading]);
 
   // Tambahkan pin baru ke list ketika dibuat
   const handlePinCreated = newPin => {
     setPins(prevPins => [newPin, ...prevPins]);
   };
+  if (authLoading && page === 1) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
+  if (!authLoading && !user) {
+
+    return null; // Atau <LoginPageRedirectComponent />
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
@@ -160,17 +204,18 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <MasonryLayout>
-              {Array.isArray(pins) &&
-                pins.map((pin, index) => (
-                  <div
-                    key={pin.id}
-                    ref={index === pins.length - 1 ? lastPinRef : null}
-                  >
-                    <PinCard pin={pin} />
-                  </div>
-                ))}
-            </MasonryLayout>
+        <MasonryLayout columns={4} gap={4}>
+          {Array.isArray(pins) &&
+            pins.map((pin, index) => (
+              // Jika PinCard adalah komponen, pastikan ia memiliki key unik dari datanya
+              <div
+                key={pin.id} // Pastikan pin.id unik
+                ref={index === pins.length - 1 ? lastPinRef : null}
+              >
+                <PinCard pin={pin} />
+              </div>
+            ))}
+        </MasonryLayout>
 
             {loading && page > 1 && (
               <div className="flex justify-center my-6">
