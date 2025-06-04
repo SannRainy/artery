@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
-const ProfileHeader = ({ user, isCurrentUser }) => {
+const ProfileHeader = ({ user, isCurrentUser, isFollowing, handleFollow }) => {
   let avatarSrc = '/img/default-avatar.png'; 
 
   if (user && user.avatar_url) {
@@ -14,10 +14,6 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
     } else if (user.avatar_url.startsWith('/img/')) { 
       avatarSrc = user.avatar_url; 
     }
-    // Anda bisa menambahkan kondisi lain di sini jika avatar_url bisa berupa URL eksternal penuh
-    // else if (user.avatar_url.startsWith('http')) {
-    //   avatarSrc = user.avatar_url;
-    // }
   }
 
   return (
@@ -76,7 +72,7 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
             )}
                {!isCurrentUser && user && (
               <button 
-                // onClick={handleFollow} 
+                onClick={handleFollow} 
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm sm:text-base w-full sm:w-auto justify-center"
               >
                 { isFollowing ? 'Unfollow' : 'Follow' }
