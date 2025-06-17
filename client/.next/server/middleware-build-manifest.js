@@ -25,10 +25,10 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/settings/profile": [
+    "/messages": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/settings/profile.js"
+      "static/chunks/pages/messages.js"
     ],
     "/users/[id]": [
       "static/chunks/webpack.js",

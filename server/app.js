@@ -19,7 +19,8 @@ const db = knex(knexConfig[dbEnvironment]);
 const { authenticate } = require('./middleware/auth');
 const userRoutes = require('./routes/users');
 const tagRoutes = require('./routes/tags');
-const pinRoutes = require('./routes/pins')(db); // pinRoutes sudah diinisialisasi dengan db
+const pinRoutes = require('./routes/pins')(db);
+const messageRoutes = require('./routes/messages')(db);
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Seringkali API berjalan di port berbeda dari frontend
@@ -90,6 +91,7 @@ try {
 app.use('/api/v1/users', userRoutes(db));
 app.use('/api/v1/tags', authenticate, tagRoutes(db)); 
 app.use('/api/v1/pins', pinRoutes); 
+app.use('/api/v1/messages', messageRoutes);
 
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');

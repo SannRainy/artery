@@ -140,33 +140,50 @@ module.exports = function (db) {
   });
 
   // ✅ GET USER PROFILE
-  router.get('/:id', async (req, res) => {
+  router.get('/:id', authenticate, async (req, res) => {
+    const { id } = req.params;
+    const currentUserId = req.user.id;
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
+
     try {
-      const user = await db('users')
-        .where({ id: req.params.id })
-        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at')
-        .first();
-      if (!user) {
-        return res.status(404).json({ error: { message: 'User not found', requestId, timestamp }});
-      }
-      const [pinsCount] = await db('pins').where({ user_id: req.params.id }).count('id as count');
-      const [boardsCount] = await db('boards').where({ user_id: req.params.id }).count('id as count');
-      const [followersCount] = await db('follows').where({ following_id: req.params.id }).count('id as count');
-      const [followingCount] = await db('follows').where({ follower_id: req.params.id }).count('id as count');
-      res.json({
-        ...user,
-        pinsCount: parseInt(pinsCount.count, 10) || 0,
-        boardsCount: parseInt(boardsCount.count, 10) || 0,
-        followersCount: parseInt(followersCount.count, 10) || 0,
-        followingCount: parseInt(followingCount.count, 10) || 0
-      });
+        const user = await db('users').where({ id }).first();
+        if (!user) {
+            return res.status(404).json({ error: { message: 'User not found' } });
+        }
+
+        // Ambil data agregat
+        const [pinsCount, followingCount, followersCount] = await Promise.all([
+            db('pins').where({ user_id: id }).count('id as count').first(),
+            db('follows').where({ follower_id: id }).count('id as count').first(),
+            db('follows').where({ following_id: id }).count('id as count').first()
+        ]);
+
+        // Cek status follow
+        const isFollowing = await db('follows').where({ follower_id: currentUserId, following_id: id }).first();
+        
+        // === PERUBAHAN UTAMA DI SINI ===
+        // Cek apakah user ini mem-follow kita balik
+        const isFollowingYou = await db('follows').where({ follower_id: id, following_id: currentUserId }).first();
+        // ==============================
+
+        res.json({
+            id: user.id,
+            username: user.username,
+            avatar_url: user.avatar_url,
+            bio: user.bio,
+            created_at: user.created_at,
+            pinsCount: parseInt(pinsCount.count, 10),
+            followingCount: parseInt(followingCount.count, 10),
+            followersCount: parseInt(followersCount.count, 10),
+            is_following: !!isFollowing,
+            is_following_you: !!isFollowingYou // <-- Tambahkan field baru di respons
+        });
     } catch (err) {
-      console.error(`[${requestId}] Get profile error:`, err);
-      res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});
+        console.error(`[${requestId}] [${timestamp}] Error fetching user profile:`, err.message);
+        res.status(500).json({ error: { message: 'Internal Server Error' } });
     }
-  });
+});
 
   // ✅ UPDATE USER PROFILE
   // HANYA SATU DEFINISI router.put('/:id', ...)

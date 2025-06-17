@@ -1,8 +1,7 @@
 // client/src/components/profile/ProfileHeader.jsx
 import Image from 'next/image';
-import { FiEdit, FiHome } from 'react-icons/fi'; // Pastikan FiHome diimpor
+import { FiEdit, FiHome } from 'react-icons/fi';
 import Link from 'next/link';
-import Header from '../../components/layout/Header';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -55,7 +54,6 @@ const ProfileHeader = ({ user, isCurrentUser, isFollowing, handleFollow }) => {
           
           {/* Tombol Aksi */}
           <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 md:mt-0">
-            {/* Tombol Beranda akan selalu ada jika Anda mau, atau kondisional */}
             <Link 
               href="/" 
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm sm:text-base w-full sm:w-auto justify-center"
@@ -64,14 +62,17 @@ const ProfileHeader = ({ user, isCurrentUser, isFollowing, handleFollow }) => {
             </Link>
 
             {isCurrentUser && (
+              // === PERUBAHAN UTAMA DI SINI ===
+              // Tag <a> dihapus dan className dipindahkan ke Link
               <Link 
                 href="/settings/profile" 
                 className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm sm:text-base w-full sm:w-auto justify-center"
               >
                 <FiEdit /> Edit Profile
               </Link>
+              // ===============================
             )}
-               {!isCurrentUser && user && (
+            {!isCurrentUser && user && (
               <button 
                 onClick={handleFollow} 
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm sm:text-base w-full sm:w-auto justify-center"
