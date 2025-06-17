@@ -11,7 +11,7 @@ const uploadPath = path.join(__dirname, '..', '..', 'public/uploads');
 try {
   fs.mkdirSync(uploadPath, { recursive: true });
 } catch (err) {
-  // console.error('Failed to create upload directory:', err); // Bisa di-silent jika direktori sudah ada
+  // Silent error is fine if directory already exists
 }
 
 const storage = multer.diskStorage({
@@ -43,15 +43,13 @@ const uploadMiddleware = multer({
 module.exports = function (db) {
   const router = express.Router();
 
-  const pinBasicColumns = [ // Kolom dasar yang sering dipilih
+  const pinBasicColumns = [
     'p.id', 'p.title', 'p.description', 'p.image_url', 
     'p.created_at', 'p.updated_at', 'p.user_id'
   ];
 
   router.get('/', async (req, res) => {
-    // ================== PERUBAHAN DI SINI (1) ==================
     let { page = 1, limit = 30, category = '', user_id: filter_user_id, mode } = req.query;
-    // ==========================================================
     const currentAuthenticatedUserId = req.user ? req.user.id : null;
     const requestId = req.requestId || `req-${Date.now()}`;
     const timestamp = new Date().toISOString();
@@ -81,28 +79,30 @@ module.exports = function (db) {
         countQueryBuilder.where('p_count.user_id', filter_user_id);
       }
       
+      // === PERUBAHAN LOGIKA FILTER UTAMA DI SINI ===
       if (category && category.trim() !== '' && category !== 'Semua') {
         const categoryName = category.trim().toLowerCase();
-        pinsQuery
-          .join('pin_tags as pt_filter', 'p.id', 'pt_filter.pin_id')
-          .join('tags as t_filter', 'pt_filter.tag_id', 't_filter.id')
-          .where('t_filter.name', categoryName);
         
-        countQueryBuilder
-          .join('pin_tags as pt_filter_count', 'p_count.id', 'pt_filter_count.pin_id')
-          .join('tags as t_filter_count', 'pt_filter_count.tag_id', 't_filter_count.id')
-          .where('t_filter_count.name', categoryName);
+        // Buat subquery untuk mendapatkan semua pin_id yang sesuai dengan kategori
+        const subquery = db('pin_tags')
+          .join('tags', 'pin_tags.tag_id', 'tags.id')
+          .where('tags.name', categoryName)
+          .select('pin_tags.pin_id');
+
+        // Filter query utama dan query hitung menggunakan hasil dari subquery
+        pinsQuery.whereIn('p.id', subquery);
+        countQueryBuilder.whereIn('p_count.id', subquery);
       }
+      // === AKHIR PERUBAHAN ===
       
-      pinsQuery.groupBy(...pinBasicColumns.map(col => col.startsWith('p.') ? col : `p.${col}`), 'u.username', 'u.avatar_url'); 
+      // GroupBy tidak lagi diperlukan karena subquery sudah menangani duplikasi
+      // pinsQuery.groupBy(...pinBasicColumns.map(col => col.startsWith('p.') ? col : `p.${col}`), 'u.username', 'u.avatar_url'); 
       
-      // ================== PERUBAHAN DI SINI (2) ==================
       if (mode === 'random') {
         pinsQuery.orderBy(db.raw('RAND()'));
       } else {
         pinsQuery.orderBy('p.created_at', 'desc');
       }
-      // ==========================================================
 
       pinsQuery.limit(limit).offset(offset);
 

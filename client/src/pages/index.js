@@ -16,13 +16,10 @@ export default function Home() {
   const router = useRouter();
 
   const [selectedPin, setSelectedPin] = useState(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
   const [activeCategory, setActiveCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
@@ -36,7 +33,7 @@ export default function Home() {
 
   const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
   
-  const fetchAndSetPins = useCallback(async (pageNum, query, category, shouldAppend) => {
+  const fetchAndSetPins = useCallback(async (pageNum, query, category, isAppending) => {
     if (!isAuthenticated) return;
     setLoading(true);
     setError(null);
@@ -49,7 +46,7 @@ export default function Home() {
       const newPins = response?.data || [];
       const pagination = response?.pagination;
 
-      setPins(prev => shouldAppend ? [...prev, ...newPins] : newPins);
+      setPins(prev => isAppending ? [...prev, ...newPins] : newPins);
       
       if (pagination) {
         setHasMore(pageNum < pagination.totalPages);
@@ -64,28 +61,28 @@ export default function Home() {
       setLoading(false);
     }
   }, [isAuthenticated]);
-
-  // Logika untuk Modal Detail Pin
-  const handleOpenPinDetail = (pin) => router.push(`/?pinId=${pin.id}`, `/pins/${pin.id}`, { shallow: true });
-  const handleClosePinDetail = () => router.push('/', undefined, { shallow: true });
+  
+  // useEffect utama untuk semua pengambilan data
   useEffect(() => {
-    if (router.isReady && router.query.pinId && pins.length > 0) {
-      const pinToOpen = pins.find(p => p.id === parseInt(router.query.pinId, 10));
-      if (pinToOpen) {
-        setSelectedPin(pinToOpen);
-        setIsDetailModalOpen(true);
-      } else {
-        handleClosePinDetail();
-      }
-    } else if (router.isReady && !router.query.pinId) {
-      setSelectedPin(null);
-      setIsDetailModalOpen(false);
+    fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, searchQuery, activeCategory, isAuthenticated]);
+
+  const handleCategoryClick = (category) => {
+    if (activeCategory !== category) {
+      setSearchQuery('');
+      setPage(1);
+      setActiveCategory(category);
     }
-  }, [router.isReady, router.query.pinId, pins]);
-
+  };
+  
+  const debouncedSearch = useCallback(debounce(query => {
+    setActiveCategory('Semua');
+    setPage(1);
+    setSearchQuery(query);
+  }, 500), []);
+  
   // === PERUBAHAN UTAMA DI SINI ===
-
-  // 1. Logika Infinite Scroll yang sudah diperbaiki
   const observer = useRef();
   const lastPinRef = useCallback(node => {
     if (loading) return;
@@ -94,49 +91,38 @@ export default function Home() {
     observer.current = new IntersectionObserver(async entries => {
       if (entries[0].isIntersecting) {
         if (hasMore) {
-          // Selalu fetch halaman berikutnya jika hasMore
+          // Jika masih ada halaman, muat halaman berikutnya
           setPage(prevPage => prevPage + 1);
         } else if (!hasMore && activeCategory === 'Semua' && !searchQuery) {
-          // UNLIMITED SCROLL: hanya jika sudah habis DAN di kategori "Semua"
+          // Jika sudah habis, TAPI kategori adalah "Semua" dan tidak sedang mencari,
+          // aktifkan UNLIMITED SCROLL dengan mode random.
           setLoading(true);
           const response = await getPins({ page: 1, mode: 'random' });
-          const randomPins = response?.data || [];
-          setPins(prev => [...prev, ...randomPins]);
+          setPins(prev => [...prev, ...(response?.data || [])]);
           setLoading(false);
         }
+        // Jika sudah habis dan berada di kategori lain, tidak melakukan apa-apa.
       }
     });
 
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, activeCategory, searchQuery]);
-
-  // 2. useEffect untuk memicu pengambilan data
-  useEffect(() => {
-    // Hanya fetch jika isAuthenticated, untuk mencegah panggilan saat redirect
-    if (isAuthenticated) {
-      // Jika halaman 1, ganti data (isAppending=false). Jika > 1, tambahkan data (isAppending=true)
-      fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
-    }
-  }, [page, searchQuery, activeCategory, isAuthenticated, fetchAndSetPins]);
-
-  // 3. Handler untuk filter yang hanya mengatur state
-  const handleCategoryClick = (category) => {
-    if (activeCategory !== category) {
-      setSearchQuery('');
-      setPins([]); // Kosongkan pin untuk menampilkan loading
-      setPage(1); // Reset halaman ke 1, ini akan memicu useEffect di atas
-      setActiveCategory(category);
-    }
-  };
-  
-  const debouncedSearch = useCallback(debounce(query => {
-    setActiveCategory('Semua');
-    setPins([]);
-    setPage(1);
-    setSearchQuery(query);
-  }, 500), []);
+  }, [loading, hasMore, activeCategory, searchQuery]); // Tambahkan dependensi
   // === AKHIR PERUBAHAN ===
-
+  
+  const handleOpenPinDetail = (pin) => router.push(`/?pinId=${pin.id}`, `/pins/${pin.id}`, { shallow: true });
+  const handleClosePinDetail = () => router.push('/', undefined, { shallow: true });
+  useEffect(() => {
+    if (router.isReady) {
+      const { pinId } = router.query;
+      if (pinId && pins.length > 0) {
+        const pinToOpen = pins.find(p => p.id === parseInt(pinId, 10));
+        if (pinToOpen) setSelectedPin(pinToOpen);
+      } else if (!pinId) {
+        setSelectedPin(null);
+      }
+    }
+  }, [router.isReady, router.query.pinId, pins]);
+  
   const handlePinCreated = (newPin) => setPins(prev => [newPin, ...prev]);
   const breakpointColumnsObj = { default: 5, 1280: 4, 1024: 3, 768: 2, 640: 2 };
 
@@ -181,10 +167,17 @@ export default function Home() {
         )}
 
         {loading && pins.length > 0 && <div className="text-center py-8"><LoadingSpinner /></div>}
+        
+        {/* Pesan untuk menandakan akhir konten di kategori spesifik */}
+        {!hasMore && activeCategory !== 'Semua' && pins.length > 0 && (
+          <div className="text-center py-10 text-gray-400 text-sm">
+            <p>Anda telah melihat semua pin di kategori ini.</p>
+          </div>
+        )}
       </main>
 
-      {isDetailModalOpen && selectedPin && (
-        <PinDetailModal pin={selectedPin} isOpen={isDetailModalOpen} onClose={handleClosePinDetail} />
+      {selectedPin && (
+        <PinDetailModal pin={selectedPin} isOpen={!!selectedPin} onClose={handleClosePinDetail} />
       )}
       <PinCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPinCreated={handlePinCreated} />
     </div>

@@ -8,12 +8,13 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
+export const followUser = (userId) => {
+  return api.post(`/users/${userId}/follow`);
+}
+
 export const createPin = async (formData) => {
   try {
-    // Logging FormData jika perlu untuk debug
-    // for (let [key, value] of formData.entries()) {
-    //   console.log(`${key}:`, value);
-    // }
+
     const response = await api.post('/pins', formData); // Headers FormData dihandle oleh interceptor
     return response.data;
   } catch (error) {
@@ -92,17 +93,11 @@ export const likePin = async (pinId) => {
 
 export const unlikePin = async (pinId) => {
   try {
-    // Metode untuk unlike bisa POST (seperti like) atau DELETE.
-    // Jika POST /:pinId/like adalah toggle, maka fungsi ini mungkin tidak perlu dipisah.
-    // Berdasarkan implementasi server terakhir, POST /:pinId/like adalah toggle.
-    // Jadi, kita bisa saja hanya menggunakan satu fungsi `toggleLikePin`.
-    // Namun, jika Anda tetap ingin memisahkannya dan server punya endpoint DELETE:
-    // const response = await api.delete(`/pins/${pinId}/like`, { headers: getAuthHeaders() });
-    // Jika server menggunakan POST sebagai toggle:
+
     const response = await api.post(`/pins/${pinId}/like`, null, { // Sama seperti likePin
       headers: getAuthHeaders(),
     });
-    // Server sekarang diharapkan mengembalikan { liked: false, new_like_count: N }
+
     return response.data;
   } catch (error) {
     console.error(`Failed to unlike pin with ID ${pinId}:`, error.response?.data || error.message);

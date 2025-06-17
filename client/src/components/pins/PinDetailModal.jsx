@@ -1,224 +1,214 @@
 // client/src/components/pins/PinDetailModal.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
-import { likePin, unlikePin, addComment } from '../../services/pins'; // Pastikan addComment ada dan berfungsi
-import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
-import Button from '../ui/Button';
-import Input from '../ui/Input'; // Asumsi Input adalah komponen UI kustom Anda
+import { getPinById, addComment, likePin } from '../../services/pins';
+import { followUser } from '../../lib/api/profile';
+import { formatDate } from '../../utils/helpers';
+import LoadingSpinner from '../ui/LoadingSpinner';
+import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
-export default function PinDetailModal({ pin, onClose, isOpen }) { // Tambahkan isOpen sebagai prop
+export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   const { user } = useAuth();
   
-  const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
-  const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
-  const [comments, setComments] = useState(pin?.comments || []);
+  const [pin, setPin] = useState(initialPin);
+  const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const modalRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const commentsEndRef = useRef(null);
 
   useEffect(() => {
-    if (pin) {
-      setIsLiked(pin.is_liked || false);
-      setLikeCount(pin.like_count || 0);
-      setComments(pin.comments || []);
-    }
-  }, [pin]);
+    if (!isOpen) return;
 
-  useEffect(() => {
-    if (isOpen && modalRef.current) {
-      modalRef.current.focus();
-    }
-    // Membersihkan input komentar saat modal ditutup atau pin berubah
-    if (!isOpen) {
-        setCommentText('');
-    }
-  }, [isOpen]);
-
-  const handleLike = async () => {
-    if (!user) return;
-
-    const originalIsLiked = isLiked;
-    const originalLikeCount = likeCount;
-
-    setIsLiked(!originalIsLiked);
-    setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
-
-    try {
-      // Menggunakan fungsi likePin yang sama karena server POST /:pinId/like sekarang adalah toggle
-      const response = await likePin(pin.id); 
-
-      if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
-        setIsLiked(response.liked);
-        setLikeCount(response.new_like_count);
-      } else {
-         console.warn("Like/unlike response did not contain expected data.");
+    const fetchPinDetails = async () => {
+      setLoading(true);
+      try {
+        const fullPinData = await getPinById(initialPin.id);
+        setPin(fullPinData);
+        setIsFollowing(fullPinData.user?.is_following || false);
+      } catch (error) {
+        console.error("Gagal memuat detail pin:", error);
+        onClose();
+      } finally {
+        setLoading(false);
       }
+    };
+
+    fetchPinDetails();
+  }, [initialPin, isOpen, onClose]);
+
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [pin?.comments]);
+
+  const handleAction = useCallback(async (action) => {
+    if (!user) return;
+    try {
+      await action();
     } catch (err) {
-      console.error('Error toggling like:', err);
-      setIsLiked(originalIsLiked);
-      setLikeCount(originalLikeCount);
-      // Tampilkan notifikasi error
+      console.error("Gagal melakukan aksi:", err);
+      // Anda bisa menambahkan notifikasi error di sini
     }
+  }, [user]);
+
+  const handleLike = () => {
+    const originalPin = { ...pin };
+    setPin(p => ({
+      ...p,
+      is_liked: !p.is_liked,
+      like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1,
+    }));
+    handleAction(() => likePin(pin.id)).catch(() => setPin(originalPin));
+  };
+
+  const handleFollow = () => {
+    if (!pin.user || user.id === pin.user.id) return;
+    const originalIsFollowing = isFollowing;
+    setIsFollowing(!originalIsFollowing);
+    handleAction(() => followUser(pin.user.id)).catch(() => setIsFollowing(originalIsFollowing));
   };
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!commentText.trim() || !user) return;
-
-    const optimisticComment = {
-      id: `temp_${Date.now()}`,
-      user: { 
-        id: user.id,
-        username: user.username,
-        avatar_url: user.avatar_url || '/images/default-avatar.jpg', // Fallback avatar
-      },
-      text: commentText.trim(),
-      created_at: new Date().toISOString(),
-    };
-
-    setComments(prevComments => [...prevComments, optimisticComment]);
-    const tempCommentText = commentText; // Simpan untuk rollback jika perlu
-    setCommentText('');
-
+    if (!commentText.trim() || isSubmitting) return;
+    setIsSubmitting(true);
     try {
-      const newCommentFromServer = await addComment(pin.id, tempCommentText.trim());
-      setComments(prevComments =>
-        prevComments.map(comment =>
-          comment.id === optimisticComment.id ? { ...newCommentFromServer, user: newCommentFromServer.user || optimisticComment.user } : comment 
-        )
-      );
+      const newComment = await addComment(pin.id, commentText);
+      setPin(p => ({
+        ...p,
+        comments: [...(p.comments || []), newComment],
+        comment_count: (p.comment_count || 0) + 1,
+      }));
+      setCommentText('');
     } catch (err) {
-      console.error('Error adding comment:', err);
-      setComments(prevComments => prevComments.filter(comment => comment.id !== optimisticComment.id));
-      setCommentText(tempCommentText); // Kembalikan teks jika gagal
-      // Tampilkan notifikasi error
+      console.error("Gagal menambah komentar:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
-  
-  if (!isOpen || !pin) return null;
 
-  const pinUser = pin.user || {};
-  const pinCommentsToDisplay = comments || [];
+  if (!isOpen) return null;
+
+  let currentUserAvatar = user?.avatar_url 
+    ? (user.avatar_url.startsWith('/uploads/') ? `${BASE_URL}${user.avatar_url}` : user.avatar_url)
+    : '/img/default-avatar.png';
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="pinDetailModalTitle"
-      ref={modalRef}
-      tabIndex={-1}
-    >
-      <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" onClick={onClose}></div>
-
-      <div className="flex items-center justify-center min-h-screen p-4 text-center">
-        {/* Ini untuk trik vertical centering */}
-        <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-        
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-          {/* Konten Modal */}
-          <div className="p-1 md:p-2"> {/* Padding lebih kecil untuk memberi ruang pada konten */}
-            <div className="flex flex-col md:flex-row gap-0 md:gap-2 max-h-[calc(90vh-4rem)]"> {/* Batasi tinggi modal */}
-              {/* Kolom Gambar */}
-              <div className="w-full md:w-1/2 flex justify-center items-center bg-gray-100 rounded-l-lg overflow-hidden">
-                <img
-                  src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
-                  alt={pin.title || "Pin image"}
-                  className="object-contain w-full h-full max-h-[80vh] md:max-h-none" // Biarkan gambar mengisi kontainer
-                />
+    // Backdrop gelap, klik di sini akan menutup modal
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
+      
+      {/* Kontainer untuk margin dan posisi relatif tombol close */}
+      <div className="relative w-full h-full max-w-6xl max-h-full p-4 md:p-8 lg:p-12">
+        {/* Konten Modal Aktual dengan tinggi tetap */}
+        <div 
+          className="relative bg-white rounded-3xl shadow-2xl w-full h-full flex flex-col md:flex-row overflow-hidden"
+          onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat konten diklik
+        >
+          {/* Tombol Close sekarang di dalam dan relatif terhadap konten modal */}
+          <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 z-10 p-2 rounded-full bg-white/50 hover:bg-gray-200 hover:text-gray-900 transition-colors">
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+          
+          {loading || !pin ? (
+            <div className="flex w-full h-full justify-center items-center"><LoadingSpinner /></div>
+          ) : (
+            <>
+              {/* Kolom Gambar (Kiri) */}
+              <div className="w-full md:w-1/2 bg-gray-100 flex-shrink-0">
+                <div className="relative w-full h-full">
+                  <Image
+                    src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
+                    alt={pin.title || "Pin image"}
+                    layout="fill"
+                    objectFit="contain"
+                    className="rounded-l-3xl"
+                  />
+                </div>
               </div>
 
-              {/* Kolom Detail */}
-              <div className="w-full md:w-1/2 p-4 md:p-6 flex flex-col overflow-y-auto">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 id="pinDetailModalTitle" className="text-xl md:text-2xl font-bold text-gray-900">{pin.title}</h2>
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600"
-                    aria-label="Close"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </button>
-                </div>
-                
-                {pin.description && (
-                  <p className="text-gray-700 mb-4 text-sm">{pin.description}</p>
-                )}
-
-                {/* link_url sudah dihapus */}
-
-                <div className="flex items-center space-x-2 mb-4">
-                  <img
-                    src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/images/default-avatar.jpg')}
-                    alt={pinUser.username || 'User'}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <span className="font-medium text-sm">{pinUser.username || 'Anonymous'}</span>
-                </div>
-
-                <div className="flex space-x-4 items-center mb-6">
-                  <button
-                    onClick={handleLike}
-                    className={`flex items-center space-x-1 text-sm ${!user ? 'opacity-50 cursor-not-allowed' : 'text-gray-600 hover:text-red-500'}`}
-                    disabled={!user}
-                    aria-pressed={isLiked}
-                  >
-                    {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
-                    <span>{likeCount}</span>
-                  </button>
-                  <div className="flex items-center space-x-1 text-sm text-gray-600">
-                    <FaComment />
-                    <span>{pinCommentsToDisplay.length}</span>
-                  </div>
-                </div>
-
-                {/* Bagian Komentar */}
-                <div className="flex-grow overflow-y-auto border-t pt-4 min-h-[150px]"> {/* min-h untuk memastikan area komentar terlihat */}
-                  <h3 className="font-semibold text-gray-800 mb-3 text-md">Comments</h3>
-                  <div className="space-y-3 mb-4">
-                    {pinCommentsToDisplay.length > 0 ? pinCommentsToDisplay.map((comment) => (
-                      comment && comment.user &&
-                      <div key={comment.id} className="flex space-x-2 items-start">
-                        <img
-                          src={comment.user.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${comment.user.avatar_url}` : (comment.user.avatar_url || '/images/default-avatar.jpg')}
-                          alt={comment.user.username || 'User'}
-                          className="w-7 h-7 rounded-full mt-1"
+              {/* Kolom Detail (Kanan) */}
+              <div className="w-full md:w-1/2 p-6 flex flex-col">
+                {/* Bagian Atas: Judul, Info User, Follow */}
+                <div className="flex-shrink-0 pb-4 border-b border-gray-200">
+                  <h1 className="text-3xl font-bold text-gray-900 break-words pr-8">{pin.title}</h1>
+                  {pin.description && <p className="text-gray-600 mt-2 text-sm break-words">{pin.description}</p>}
+                  <div className="flex justify-between items-center mt-6">
+                    <Link href={`/users/${pin.user.id}`} className="flex items-center space-x-3 group">
+                      <div className="relative w-10 h-10 rounded-full overflow-hidden">
+                        <Image
+                          src={pin.user.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.user.avatar_url}` : (pin.user.avatar_url || '/img/default-avatar.png')}
+                          alt={pin.user.username} layout="fill" objectFit="cover"
                         />
-                        <div className="bg-gray-100 p-2 rounded-lg flex-1">
-                          <p className="font-medium text-xs text-gray-800">{comment.user.username || 'Anonymous'}</p>
-                          <p className="text-xs text-gray-700 break-words">{comment.text}</p>
-                        </div>
                       </div>
-                    )) : (
-                      <p className="text-xs text-gray-500">No comments yet. Be the first to comment!</p>
+                      <p className="font-semibold text-sm text-gray-800 group-hover:underline">{pin.user.username}</p>
+                    </Link>
+                    {user && user.id !== pin.user.id && (
+                      <button onClick={handleFollow} className={`font-semibold py-2 px-4 rounded-full text-sm transition-colors ${isFollowing ? 'bg-gray-200 text-black' : 'bg-primary text-white'}`}>
+                        {isFollowing ? 'Diikuti' : 'Ikuti'}
+                      </button>
                     )}
                   </div>
                 </div>
-                
-                {/* Form Komentar */}
+
+                {/* Bagian Tengah: Komentar (Bisa di-scroll) */}
+                <div className="flex-grow my-4 overflow-y-auto pr-2 space-y-5">
+                  <h2 className="font-semibold text-md sticky top-0 bg-white py-2">Komentar</h2>
+                  {pin.comments?.length > 0 ? pin.comments.map((comment) => (
+                    <div key={comment.id} className="flex items-start space-x-3">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                        <Image
+                          src={comment.user.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${comment.user.avatar_url}` : (comment.user.avatar_url || '/img/default-avatar.png')}
+                          alt={comment.user.username} layout="fill" objectFit="cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p>
+                          <Link href={`/users/${comment.user.id}`} className="font-semibold text-sm mr-2 hover:underline">{comment.user.username}</Link>
+                          <span className="text-sm text-gray-800">{comment.text}</span>
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">{formatDate(comment.created_at)}</p>
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-gray-500">Belum ada komentar.</p>
+                  )}
+                  <div ref={commentsEndRef} />
+                </div>
+
+                {/* Bagian Bawah: Aksi dan Form Komentar */}
                 {user && (
-                  <form onSubmit={handleCommentSubmit} className="mt-auto border-t pt-4">
-                    <div className="flex space-x-2 items-center">
-                      <img
-                        src={user.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${user.avatar_url}` : (user.avatar_url || '/images/default-avatar.jpg')}
-                        alt={user.username}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <Input
+                  <div className="flex-shrink-0 mt-auto pt-4 border-t border-gray-200">
+                    <div className="flex justify-between items-center mb-3">
+                      <p className="text-lg font-bold">{pin.like_count || 0} Suka</p>
+                      <button onClick={handleLike} className="p-2 rounded-full hover:bg-gray-100">
+                        {pin.is_liked ? <FaHeart className="text-red-500 h-6 w-6" /> : <FaRegHeart className="h-6 w-6 text-gray-600" />}
+                      </button>
+                    </div>
+                    <form onSubmit={handleCommentSubmit} className="flex items-center space-x-2">
+                      <div className="relative w-8 h-8 rounded-full overflow-hidden">
+                        <Image src={currentUserAvatar} alt="Avatar Anda" layout="fill" objectFit="cover"/>
+                      </div>
+                      <input
                         value={commentText}
                         onChange={(e) => setCommentText(e.target.value)}
-                        placeholder="Add a comment..."
-                        className="flex-1 !mt-0" // Override margin jika ada dari Input
-                        aria-label="Add a comment"
+                        placeholder="Tambahkan komentar..."
+                        className="flex-1 bg-gray-100 border-none rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                        disabled={isSubmitting}
                       />
-                      <Button type="submit" disabled={!commentText.trim()} className="py-2">Post</Button>
-                    </div>
-                  </form>
+                      <button type="submit" disabled={!commentText.trim() || isSubmitting} className="p-2 text-primary rounded-full hover:bg-gray-100 disabled:text-gray-300">
+                        <PaperAirplaneIcon className="h-6 w-6"/>
+                      </button>
+                    </form>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
       </div>
     </div>
