@@ -85,15 +85,30 @@ module.exports = function (db) {
     try {
       const messages = await db('messages')
         .where({ conversation_id: conversationId })
-        .join('users as u', 'messages.sender_id', 'u.id')
-        .select('messages.*', 'u.username as senderUsername', 'u.avatar_url as senderAvatar')
+        .join('users', 'messages.sender_id', 'users.id')
+        .select('messages.*', 'users.id as userId', 'users.username', 'users.avatar_url')
         .orderBy('messages.created_at', 'asc');
-      res.json(messages);
+      
+      // Format respons agar konsisten
+      const formattedMessages = messages.map(msg => ({
+        id: msg.id,
+        text: msg.text,
+        created_at: msg.created_at,
+        sender_id: msg.sender_id,
+        user: {
+          id: msg.userId,
+          username: msg.username,
+          avatar_url: msg.avatar_url
+        }
+      }));
+      
+      res.json(formattedMessages);
     } catch (err) {
       console.error(`Error fetching messages for conversation ${conversationId}:`, err);
       res.status(500).json({ error: 'Gagal mengambil pesan.' });
     }
   });
+  // ==============================
 
   // POST /api/v1/messages/:conversationId - Mengirim pesan
   router.post('/:conversationId', async (req, res) => {
@@ -103,23 +118,33 @@ module.exports = function (db) {
         return res.status(400).json({ error: 'Teks tidak boleh kosong.' });
     }
     try {
-      const [newMessage] = await db('messages').insert({
+      const [newMessageId] = await db('messages').insert({
         conversation_id: conversationId,
         sender_id: req.user.id,
         text: text.trim(),
-      }).returning('*');
+      }).returning('id');
       
-      // Update timestamp percakapan agar naik ke atas daftar
       await db('conversations').where({ id: conversationId }).update({ updated_at: db.fn.now() });
       
-      // Ambil data user untuk respons
-      const sender = await db('users').where({ id: req.user.id }).first();
-      res.status(201).json({ ...newMessage, user: sender });
+      const fullNewMessage = await db('messages')
+        .where('messages.id', newMessageId.id || newMessageId)
+        .join('users', 'messages.sender_id', 'users.id')
+        .select('messages.*', 'users.id as userId', 'users.username', 'users.avatar_url')
+        .first();
+
+      const responseMessage = {
+          id: fullNewMessage.id, text: fullNewMessage.text, created_at: fullNewMessage.created_at,
+          sender_id: fullNewMessage.sender_id,
+          user: { id: fullNewMessage.userId, username: fullNewMessage.username, avatar_url: fullNewMessage.avatar_url }
+      };
+      
+      res.status(201).json(responseMessage);
     } catch (err) {
       console.error('Error sending message:', err);
       res.status(500).json({ error: 'Gagal mengirim pesan.' });
     }
   });
+
 
   return router;
 };

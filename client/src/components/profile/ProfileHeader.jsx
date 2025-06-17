@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import { FiEdit, FiHome } from 'react-icons/fi';
 import Link from 'next/link';
+import { followUser } from '../../lib/api/profile';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 

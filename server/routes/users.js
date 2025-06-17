@@ -139,6 +139,30 @@ module.exports = function (db) {
     }
   });
 
+  router.get('/search', authenticate, async (req, res) => {
+    const { q = '' } = req.query; // q adalah query pencarian
+    const currentUserId = req.user.id;
+
+    try {
+      const users = await db('users')
+        .where('username', 'like', `%${q}%`) // Cari username yang mirip
+        .whereNot('id', currentUserId) // Jangan tampilkan diri sendiri
+        .select(
+          'id', 
+          'username', 
+          'avatar_url',
+          // Subquery untuk mengecek apakah kita sudah follow user ini
+          db.raw(`EXISTS (SELECT 1 FROM follows WHERE follower_id = ? AND following_id = users.id) as is_following`, [currentUserId])
+        )
+        .limit(10); // Batasi hasil pencarian
+
+      res.json(users);
+    } catch (error) {
+      console.error("Error searching users:", error);
+      res.status(500).json({ error: 'Gagal mencari pengguna.' });
+    }
+  });
+
   // ✅ GET USER PROFILE
   router.get('/:id', authenticate, async (req, res) => {
     const { id } = req.params;

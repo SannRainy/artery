@@ -9,12 +9,14 @@ const compression = require('compression');
 const morgan = require('morgan');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer'); 
+const { attachPaginate } = require('knex-paginate')
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') }); 
 
 const knexConfig = require('./knexfile');
 const dbEnvironment = process.env.NODE_ENV || 'development';
 const db = knex(knexConfig[dbEnvironment]);
+attachPaginate();
 
 const { authenticate } = require('./middleware/auth');
 const userRoutes = require('./routes/users');
@@ -24,6 +26,7 @@ const messageRoutes = require('./routes/messages')(db);
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Seringkali API berjalan di port berbeda dari frontend
+
 
 // --- Middleware Esensial ---
 app.use(helmet());
@@ -92,6 +95,10 @@ app.use('/api/v1/users', userRoutes(db));
 app.use('/api/v1/tags', authenticate, tagRoutes(db)); 
 app.use('/api/v1/pins', pinRoutes); 
 app.use('/api/v1/messages', messageRoutes);
+
+if(messageRoutes) {
+    app.use('/api/v1/messages', messageRoutes);
+}
 
 app.use('/uploads', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
