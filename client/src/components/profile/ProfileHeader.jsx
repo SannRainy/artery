@@ -2,6 +2,7 @@
 import Image from 'next/image';
 import { FiEdit, FiHome } from 'react-icons/fi'; // Pastikan FiHome diimpor
 import Link from 'next/link';
+import Header from '../../components/layout/Header';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 

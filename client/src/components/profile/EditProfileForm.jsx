@@ -1,5 +1,5 @@
 // client/src/components/profile/EditProfileForm.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -13,187 +13,113 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'htt
 
 export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   const router = useRouter();
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isDirty } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm({
     defaultValues: {
       username: currentUser?.username || '',
-      email: currentUser?.email || '',
       bio: currentUser?.bio || '',
-      avatar_url: currentUser?.avatar_url || '', // Ini adalah field form, bukan untuk display langsung
     }
   });
 
   const [loading, setLoading] = useState(false);
-  // avatarPreview akan digunakan untuk preview langsung dari file input atau fallback awal
-  const [avatarPreview, setAvatarPreview] = useState(''); 
+  const [avatarPreview, setAvatarPreview] = useState('/img/default-avatar.png');
   const [newAvatarFile, setNewAvatarFile] = useState(null);
-
-  const currentFormAvatarUrl = watch('avatar_url'); // Mengamati field form 'avatar_url'
 
   useEffect(() => {
     if (currentUser) {
       reset({
-        username: currentUser.username,
-        email: currentUser.email,
-        bio: currentUser.bio,
-        avatar_url: currentUser.avatar_url, // Set field form 'avatar_url' dari currentUser
+        username: currentUser.username || '',
+        bio: currentUser.bio || '',
       });
-      // Atur avatarPreview berdasarkan currentUser.avatar_url saat komponen pertama kali dimuat atau currentUser berubah
-      // Ini akan menjadi URL yang valid atau path ke default lokal
-      if (currentUser.avatar_url?.startsWith('/uploads/')) {
-        setAvatarPreview(`${BASE_URL}${currentUser.avatar_url}`);
-      } else if (currentUser.avatar_url?.startsWith('/img/')) { // Jika default dari DB adalah path lokal
-        setAvatarPreview(currentUser.avatar_url);
-      } else if (currentUser.avatar_url) { // URL eksternal lain atau default yang tersimpan
-        setAvatarPreview(currentUser.avatar_url);
-      } else {
-        setAvatarPreview('/img/default-avatar.png'); // Fallback absolut
-      }
-    } else {
-        setAvatarPreview('/img/default-avatar.png'); // Fallback jika tidak ada currentUser
+      const currentAvatar = currentUser.avatar_url?.startsWith('/uploads/') 
+        ? `${BASE_URL}${currentUser.avatar_url}` 
+        : (currentUser.avatar_url || '/img/default-avatar.png');
+      setAvatarPreview(currentAvatar);
     }
   }, [currentUser, reset]);
-
 
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Ukuran file terlalu besar. Maksimal 2MB.");
+        return;
+      }
       setNewAvatarFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result); // Preview dari file yang baru dipilih (data URL)
-      };
+      reader.onloadend = () => setAvatarPreview(reader.result);
       reader.readAsDataURL(file);
-      setValue('avatar_file_input', file, { shouldDirty: true }); // Anda bisa mendaftarkan input file ini jika perlu validasi
     }
   };
 
   const onSubmit = async (data) => {
-    // Cek apakah username atau bio diubah, atau ada file avatar baru
-    const usernameChanged = currentUser.username !== data.username.trim() && data.username.trim() !== '';
-    const bioChanged = currentUser.bio !== (data.bio || '');
+    const usernameChanged = currentUser.username !== data.username.trim();
+    const bioChanged = (currentUser.bio || '') !== (data.bio || '');
     
     if (!usernameChanged && !bioChanged && !newAvatarFile) {
-        toast.info("Tidak ada perubahan untuk disimpan.");
-        return;
+      toast.info("Tidak ada perubahan untuk disimpan.");
+      return;
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      
-      if (usernameChanged) {
-        formData.append('username', data.username.trim());
-      }
-      if (bioChanged) {
-        formData.append('bio', data.bio || '');
-      }
-      
-      if (newAvatarFile) {
-        formData.append('avatar', newAvatarFile);
-      }
+      if (usernameChanged) formData.append('username', data.username.trim());
+      if (bioChanged) formData.append('bio', data.bio || '');
+      if (newAvatarFile) formData.append('avatar', newAvatarFile);
 
       const response = await api.put(`/users/${currentUser.id}`, formData);
 
       toast.success('Profil berhasil diperbarui!');
-      if (onProfileUpdated && typeof onProfileUpdated === 'function') {
-        onProfileUpdated(response.data);
-      }
-      setNewAvatarFile(null); 
-
-      reset({ 
-        ...response.data, 
-        avatar_url: response.data.avatar_url 
-      }); 
-
+      if (onProfileUpdated) onProfileUpdated(response.data.user);
       router.push(`/users/${currentUser.id}`);
       
     } catch (error) {
-      console.error("Error updating profile:", error.response?.data || error.message);
-      toast.error(error.response?.data?.error?.message || error.response?.data?.message || 'Gagal memperbarui profil.');
+      toast.error(error.response?.data?.error?.message || 'Gagal memperbarui profil.');
     } finally {
       setLoading(false);
     }
   };
 
-  let imageSrcForDisplay = '/img/default-avatar.png'; // Default absolut
-  if (newAvatarFile) {
-    imageSrcForDisplay = avatarPreview; // Jika ada file baru dipilih, gunakan preview base64 nya
-  } else if (currentFormAvatarUrl) { // Jika tidak ada file baru, gunakan nilai dari field form (yang diset dari currentUser)
-    if (currentFormAvatarUrl.startsWith('/uploads/')) {
-      imageSrcForDisplay = `${BASE_URL}${currentFormAvatarUrl}`;
-    } else { // Bisa jadi path lokal seperti '/img/default-avatar.png' atau URL eksternal lain
-      imageSrcForDisplay = currentFormAvatarUrl;
-    }
-  }
-  // Jika currentFormAvatarUrl kosong dan tidak ada newAvatarFile, akan tetap '/img/default-avatar.png'
-
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden shadow">
-          <Image
-            // PERUBAHAN: Gunakan imageSrcForDisplay
-            src={imageSrcForDisplay}
-            alt="Avatar Preview"
-            layout="fill"
-            objectFit="cover"
-            key={imageSrcForDisplay} // Key penting untuk re-render saat src berubah
-          />
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      {/* Bagian Judul Form */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900">Profil Publik</h2>
+        <p className="text-sm text-gray-500 mt-1">Informasi ini akan ditampilkan secara publik di halaman profil Anda.</p>
+      </div>
+
+      {/* Bagian Foto Profil */}
+      <div className="flex items-center gap-5">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
+          <Image src={avatarPreview} alt="Avatar Preview" layout="fill" objectFit="cover" key={avatarPreview} />
         </div>
         <div>
-          <label htmlFor="avatar-upload" className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-md text-sm">
-            Ganti Foto Profil
+          <label htmlFor="avatar-upload" className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
+            Ubah
           </label>
-          <input
-            id="avatar-upload"
-            type="file"
-            accept="image/png, image/jpeg, image/gif, image/webp"
-            className="hidden"
-            onChange={handleAvatarChange}
-            // Tidak perlu {...register('avatar_file')} di sini jika Anda menangani file secara terpisah
-            // kecuali jika Anda ingin validasi react-hook-form pada file nya langsung.
-          />
+          <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
         </div>
-         {/* Jika Anda mendaftarkan 'avatar_file_input', errornya bisa ditampilkan */}
-         {errors.avatar_file_input && <p className="text-red-500 text-xs mt-1">{errors.avatar_file_input.message}</p>}
       </div>
 
-      <Input
-        label="Username"
-        id="username"
-        {...register('username', { 
-            required: 'Username wajib diisi',
-            minLength: { value: 3, message: 'Username minimal 3 karakter' },
-            maxLength: { value: 50, message: 'Username maksimal 50 karakter' },
-         })}
-        error={errors.username}
-        className="mt-1 block w-full"
-      />
+      <div className="space-y-6 pt-6 border-t border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+          <label htmlFor="username" className="text-sm font-semibold text-gray-700 md:col-span-1">Username</label>
+          <div className="md:col-span-2">
+            <Input id="username" {...register('username', { required: 'Username wajib diisi' })} error={errors.username} />
+          </div>
+        </div>
 
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
-        <input
-          id="email"
-          type="email"
-          {...register('email')} // Email di-register tapi dibuat disabled
-          disabled
-          className="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 bg-gray-100 cursor-not-allowed"
-        />
-         <p className="mt-1 text-xs text-gray-500">Email tidak dapat diubah.</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+          <label htmlFor="bio" className="text-sm font-semibold text-gray-700 md:col-span-1 pt-2">Bio</label>
+          <div className="md:col-span-2">
+            <Textarea id="bio" {...register('bio')} rows={4} placeholder="Ceritakan sedikit tentang dirimu..." />
+          </div>
+        </div>
       </div>
 
-      <Textarea
-        label="Bio"
-        id="bio"
-        {...register('bio', { maxLength: { value: 500, message: 'Bio maksimal 500 karakter' }})}
-        rows={4}
-        error={errors.bio}
-        placeholder="Ceritakan tentang dirimu..."
-        className="mt-1 block w-full"
-      />
-
-      <div className="pt-4">
-        <Button type="submit" disabled={loading || (!isDirty && !newAvatarFile)} className="w-full md:w-auto">
+      {/* Bagian Tombol Aksi */}
+      <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
+        <Button type="submit" disabled={loading || (!isDirty && !newAvatarFile)}>
           {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
         </Button>
       </div>
