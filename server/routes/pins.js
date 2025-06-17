@@ -1,4 +1,5 @@
 // sannrainy/artery/artery-f0078462aa51f476ac9e9fea77afac719e3dfd12/server/routes/pins.js
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -14,7 +15,7 @@ try {
 }
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (req, file, cb) => { 
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
@@ -45,15 +46,13 @@ module.exports = function (db) {
   const pinBasicColumns = [ // Kolom dasar yang sering dipilih
     'p.id', 'p.title', 'p.description', 'p.image_url', 
     'p.created_at', 'p.updated_at', 'p.user_id'
-    // link_url sudah dihapus
   ];
 
-  // --- GET /pins - Mengambil pin dengan paginasi dan filter ---
-  // Untuk halaman publik, middleware 'authenticate' dihilangkan.
-  // Jika memerlukan 'is_liked', 'authenticate' bisa dibuat opsional atau 'req.user' dicek keberadaannya.
   router.get('/', async (req, res) => {
-    let { page = 1, limit = 30, category = '', user_id: filter_user_id } = req.query;
-    const currentAuthenticatedUserId = req.user ? req.user.id : null; // Dari authenticate opsional atau jika tetap ada
+    // ================== PERUBAHAN DI SINI (1) ==================
+    let { page = 1, limit = 30, category = '', user_id: filter_user_id, mode } = req.query;
+    // ==========================================================
+    const currentAuthenticatedUserId = req.user ? req.user.id : null;
     const requestId = req.requestId || `req-${Date.now()}`;
     const timestamp = new Date().toISOString();
 
@@ -96,7 +95,16 @@ module.exports = function (db) {
       }
       
       pinsQuery.groupBy(...pinBasicColumns.map(col => col.startsWith('p.') ? col : `p.${col}`), 'u.username', 'u.avatar_url'); 
-      pinsQuery.orderBy('p.created_at', 'desc').limit(limit).offset(offset);
+      
+      // ================== PERUBAHAN DI SINI (2) ==================
+      if (mode === 'random') {
+        pinsQuery.orderBy(db.raw('RAND()'));
+      } else {
+        pinsQuery.orderBy('p.created_at', 'desc');
+      }
+      // ==========================================================
+
+      pinsQuery.limit(limit).offset(offset);
 
       const pinsData = await pinsQuery;
       const totalPinsResult = await countQueryBuilder.countDistinct('p_count.id as total').first();
@@ -112,7 +120,7 @@ module.exports = function (db) {
           .select('pt.pin_id', 't.id as tag_id', 't.name as tag_name');
 
         let userLikesData = [];
-        if (currentAuthenticatedUserId) { // Hanya query likes jika user login
+        if (currentAuthenticatedUserId) {
             userLikesData = await db('pin_likes')
                 .whereIn('pin_id', pinIds)
                 .andWhere('user_id', currentAuthenticatedUserId)

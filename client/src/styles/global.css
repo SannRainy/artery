@@ -19,6 +19,20 @@ body {
   @apply bg-primary rounded-full;
 }
 
+.masonry-grid {
+  display: flex;
+  margin-left: -1rem; /* Sesuaikan nilai ini dengan setengah dari gap Anda, misal gap-4 -> 1rem */
+  width: auto;
+}
+
+.masonry-grid_column {
+  padding-left: 1rem; /* Harus sama dengan nilai absolut dari margin-left di atas */
+  background-clip: padding-box;
+}
+
+.masonry-grid_column > div {
+  margin-bottom: 1rem; /* Sesuaikan dengan gap yang Anda inginkan, misal 1rem -> 16px */
+}
 /* Animation for loading spinner */
 @keyframes spin {
   to {

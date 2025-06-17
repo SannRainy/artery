@@ -1,23 +1,18 @@
+// client/src/pages/index.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContexts';
 import { useRouter } from 'next/router';
-import MasonryLayout from '../components/layout/MasonryLayout';
+import Masonry from 'react-masonry-css'; // Langsung gunakan library
 import PinCard from '../components/pins/PinCard';
 import PinCreateModal from '../components/pins/PinCreateModal';
 import { getPins, searchPins } from '../services/pins';
 import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
 
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-
-  // Redirect to login if user not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.replace('/login'); //
-    }
-  }, [user, authLoading, router]);
 
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,159 +22,154 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const observer = useRef();
+  
+  // State baru untuk unlimited scroll
+  const [allPinsLoaded, setAllPinsLoaded] = useState(false);
 
-  const categories = [
-    'Semua',
-    'Pixel char',
-    'Illustration',
-    'Sketsa anime',
-    'Sketsa',
-    'Ilustrasi karakter',
-  ];
-
-  // Fetch pins from backend depending on page, search query, and category
-  const fetchPins = useCallback(async (pageNum = 1, currentQuery = '', currentCategory = 'Semua') => {
-    // Hanya fetch jika user sudah dimuat (untuk menghindari fetch ganda atau tanpa user context jika diperlukan server)
-    // Atau, jika halaman ini memang untuk publik, kondisi user bisa dihilangkan
-    // dan server GET /pins tidak memerlukan autentikasi.
-    if (!user && !authLoading) { // Jika auth sudah selesai loading dan tidak ada user, jangan fetch
-        setLoading(false); // Hentikan loading pins
-        // setPins([]); // Kosongkan pins jika user tidak ada dan halaman ini private
-        return;
-    }
-    if (authLoading) { // Jika auth masih loading, tunggu
-        setLoading(true);
+  const categories = ['Semua', 'Pixel art', '3D Renders', 'Anime', 'Illustration', 'Sketches'];
+  
+  // --- Fungsi Fetching yang Diperbaiki ---
+  const fetchPins = useCallback(async (pageNum, currentQuery, currentCategory, mode = 'sequential') => {
+    // Jangan fetch jika masih loading auth dan belum ada user
+    if (authLoading) return;
+    if (!user) {
+        setLoading(false);
+        setPins([]);
         return;
     }
 
-
-    setLoading(true); //
-    setError(null); //
-
+    setLoading(true);
+    setError(null);
     try {
-      let apiResponse;
-      const currentLimit = 30; //
+      // Panggil API
+      const response = currentQuery
+        ? await searchPins({ query: currentQuery, page: pageNum })
+        : await getPins({ page: pageNum, category: currentCategory, mode });
 
-      if (currentQuery) {
-        apiResponse = await searchPins(currentQuery, pageNum, currentLimit); //
-      } else {
-        // Panggil getPins dengan urutan parameter yang benar: (page, limit, category)
-        apiResponse = await getPins(pageNum, currentLimit, currentCategory === 'Semua' ? '' : currentCategory); //
-      }
-
-      // console.log('API Response from service (fetchPins):', apiResponse);
-
-      // PASTIKAN ANDA MENGAKSES .data DARI OBJEK apiResponse
-      const pinsArray = apiResponse && apiResponse.data ? apiResponse.data : []; //
-      const processedData = Array.isArray(pinsArray) ? pinsArray : []; //
+      // Cek struktur respons dengan hati-hati
+      const newPins = response?.data || [];
+      const pagination = response?.pagination;
       
-      // console.log('Processed pins array for state (fetchPins):', processedData);
-
-      if (pageNum === 1) {
-        setPins(processedData); //
-      } else {
-        setPins(prevPins => [...prevPins, ...processedData]); //
+      if (!Array.isArray(newPins)) {
+          throw new Error("Format data tidak valid diterima dari server.");
       }
-
-      // Cek pagination info dari apiResponse untuk setHasMore dengan lebih akurat
-      const pagination = apiResponse && apiResponse.pagination; //
-      if (pagination) { //
-        setHasMore(pageNum < pagination.totalPages); //
-      } else { //
-        setHasMore(processedData.length > 0); // Fallback jika pagination tidak ada
+      
+      if (mode === 'sequential') {
+        // Jika halaman pertama, ganti semua pins. Jika tidak, tambahkan.
+        setPins(prev => pageNum === 1 ? newPins : [...prev, ...newPins]);
+        
+        // Cek apakah masih ada data lagi
+        if (pagination) {
+          const allLoaded = pageNum >= pagination.totalPages;
+          setAllPinsLoaded(allLoaded);
+          // Tetap set hasMore ke true jika sudah semua, agar bisa beralih ke mode random
+          setHasMore(true); 
+        } else {
+          // Fallback jika tidak ada info pagination
+          if (newPins.length === 0) {
+            setAllPinsLoaded(true);
+            setHasMore(true);
+          } else {
+            setHasMore(true);
+          }
+        }
+      } else { // mode === 'random'
+        setPins(prev => [...prev, ...newPins]);
+        setHasMore(true); // Mode random selalu punya "lebih banyak"
       }
 
     } catch (err) {
-      console.error('Error fetching pins:', err); //
-      setError('Gagal memuat pin. Silakan coba lagi nanti.'); //
-      setHasMore(false); //
+      console.error('Failed to fetch pins:', err);
+      setError('Gagal memuat pin. Coba lagi nanti.');
+      setHasMore(false); // Berhenti mencoba fetch jika ada error
     } finally {
-      setLoading(false); //
+      setLoading(false);
     }
   }, [user, authLoading]);
 
-  // IntersectionObserver untuk infinite scroll
-  const lastPinRef = useCallback(
-    node => {
-      if (loading) return;
-      if (observer.current) observer.current.disconnect();
 
-      observer.current = new IntersectionObserver(entries => {
-        if (entries[0].isIntersecting && hasMore) {
+  // --- Logika untuk Infinite Scroll ---
+  const observer = useRef();
+  const lastPinRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        if (!allPinsLoaded) {
+          // Mode sekuensial: muat halaman berikutnya
           setPage(prevPage => prevPage + 1);
+        } else {
+          // Mode acak: muat pin random
+          fetchPins(1, searchQuery, activeCategory, 'random');
         }
-      });
+      }
+    });
 
-      if (node) observer.current.observe(node);
-    },
-    [loading, hasMore]
-  );
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore, allPinsLoaded, fetchPins, searchQuery, activeCategory]);
 
-  // Debounce untuk pencarian
-  const debouncedSearch = debounce(query => {
+  
+  // --- Effects ---
+  const debouncedSearch = useCallback(debounce(query => {
     setSearchQuery(query);
-    setPage(1);
-  }, 500);
-
-  // Reset semua filter pencarian dan kategori
-  const resetFilters = () => {
-    setSearchQuery('');
     setActiveCategory('Semua');
     setPage(1);
-  };
-
-  // Fetch pins ketika page, searchQuery, activeCategory, atau user berubah
+    setAllPinsLoaded(false);
+  }, 500), []);
+  
   useEffect(() => {
-    
-    if (!authLoading) { // Tunggu auth selesai loading dulu
-        if (user) { // Jika user ada, fetch
-            fetchPins(page, searchQuery, activeCategory);
-        } else {
-            
-            setPins([]); // Kosongkan pins jika halaman ini private dan user tidak ada
-            setLoading(false);
+    if (!authLoading && user) {
+        // Fetch saat filter atau halaman berubah
+        if(page === 1) { // Jika ini adalah fetch awal (halaman 1)
+            setPins([]); // Kosongkan dulu untuk menunjukkan state loading dengan benar
         }
+        fetchPins(page, searchQuery, activeCategory, 'sequential');
     }
-  }, [page, searchQuery, activeCategory, fetchPins, user, authLoading]);
-
-  // Tambahkan pin baru ke list ketika dibuat
-  const handlePinCreated = newPin => {
-    setPins(prevPins => [newPin, ...prevPins]);
+  }, [page, searchQuery, activeCategory, user, authLoading]); // fetchPins tidak perlu di dependensi
+  
+  const handleCategoryClick = (category) => {
+    setSearchQuery('');
+    setActiveCategory(category);
+    setPage(1);
+    setAllPinsLoaded(false);
   };
-  if (authLoading && page === 1) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+
+  const handlePinCreated = (newPin) => {
+    setPins(prev => [newPin, ...prev]);
+  };
+
+  const breakpointColumnsObj = {
+    default: 5,
+    1280: 4,
+    1024: 3,
+    768: 2,
+    640: 2
+  };
+  
+  if (authLoading) {
+    return <div className="flex justify-center items-center h-screen"><LoadingSpinner /></div>;
   }
 
-  if (!authLoading && !user) {
-
-    return null; // Atau <LoginPageRedirectComponent />
+  if (!user) {
+    // Tampilan ini hanya akan terlihat sesaat sebelum redirect
+    return <div className="flex justify-center items-center h-screen"><p>Redirecting to login...</p></div>;
   }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
         onSearch={debouncedSearch}
-        searchQuery={searchQuery}
-        onResetSearch={resetFilters}
         onCreateClick={() => setIsCreateModalOpen(true)}
       />
-
-      <main className="container mx-auto px-4 pt-28 md:pt-24 pb-8">
-        {/* Kategori */}
-        <div className="flex overflow-x-auto pb-4 mb-6 scrollbar-hide">
-          <div className="flex space-x-2">
+      <main className="container mx-auto px-4 pt-24 pb-8">
+        <div className="mb-8">
+          <div className="flex overflow-x-auto pb-2 scrollbar-hide space-x-2">
             {categories.map(category => (
               <button
                 key={category}
-                onClick={() => {
-                  setActiveCategory(category);
-                  setPage(1);
-                }}
-                className={`px-4 py-2 rounded-full whitespace-nowrap ${
+                onClick={() => handleCategoryClick(category)}
+                className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
                   activeCategory === category
                     ? 'bg-black text-white'
                     : 'bg-gray-200 hover:bg-gray-300'
@@ -190,38 +180,35 @@ export default function Home() {
             ))}
           </div>
         </div>
-
-        {/* Kondisi loading, error, tidak ada pin, dan grid pin */}
-        {loading && page === 1 ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
+        
+        {loading && pins.length === 0 ? (
+          <div className="text-center py-10"><LoadingSpinner /></div>
         ) : error ? (
-          <div className="text-red-500 text-center">{error}</div>
+            <div className="text-center py-10 text-red-500">{error}</div>
         ) : pins.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-gray-500">Tidak ada pin ditemukan. Buat satu!</p>
-          </div>
+          <div className="text-center py-10 text-gray-500">Tidak ada pin untuk ditampilkan.</div>
         ) : (
-          <>
-        <MasonryLayout columns={4} gap={4}>
-          {Array.isArray(pins) &&
-            pins.map((pin, index) => (
-              
-              <PinCard
-                key={pin.id} // Pastikan pin.id unik dan stabil
-                pin={pin}
-                ref={index === pins.length - 1 ? lastPinRef : null} // ref untuk infinite scroll
-              />
-            ))}
-        </MasonryLayout>
-
-            {loading && page > 1 && (
-              <div className="flex justify-center my-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+          <Masonry
+            breakpointCols={breakpointColumnsObj}
+            className="masonry-grid"
+            columnClassName="masonry-grid_column"
+          >
+            {pins.map((pin, index) => (
+              <div key={`${pin.id}-${index}`}>
+                <PinCard
+                  pin={pin}
+                  index={index}
+                  ref={index === pins.length - 1 ? lastPinRef : null}
+                />
               </div>
-            )}
-          </>
+            ))}
+          </Masonry>
+        )}
+
+        {loading && pins.length > 0 && (
+          <div className="text-center py-8">
+            <LoadingSpinner />
+          </div>
         )}
       </main>
 
