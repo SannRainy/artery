@@ -1,10 +1,9 @@
 // client/src/components/pins/PinCard.jsx
 import { useState, useEffect, forwardRef, useCallback } from 'react';
-import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContexts';
 import { likePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
-import { useInView } from '../../hooks/useInView';
+import { useInView } from '../../hooks/useInView'; // Asumsi hook ini sudah dibuat
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -77,6 +76,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   const pinUser = pin.user || {};
 
   return (
+    // Div terluar untuk animasi dan ref
     <div
       ref={setRefs}
       className={`transition-all duration-700 ease-out ${
@@ -84,8 +84,11 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
       }`}
       style={{ transitionDelay: `${(index % 20) * 50}ms` }}
     >
-      <div className="rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white">
-        <Link href={`/pins/${pin.id}`} className="relative cursor-zoom-in block">
+      {/* Div ini yang akan menerima event onClick dari parent (index.js) */}
+      <div className="cursor-zoom-in rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white">
+        
+        {/* Bagian Gambar */}
+        <div className="relative">
           <div className="w-full bg-gray-100" style={{ aspectRatio: aspectRatio }}>
             <img
               src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
@@ -96,7 +99,9 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
           <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 flex flex-col justify-end p-3">
             <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
           </div>
-        </Link>
+        </div>
+
+        {/* Bagian Detail di Bawah Gambar */}
         <div className="p-3">
           {pin.tags && pin.tags.length > 0 && (
             <div className="flex items-center space-x-1 flex-wrap mb-2">
@@ -107,26 +112,30 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             </div>
           )}
           <div className="flex justify-between items-center">
-            <Link href={`/users/${pin.user_id || pinUser.id}`} className="flex items-center space-x-2 group">
+            {/* User Info - tidak perlu Link karena card ini sendiri adalah pemicu */}
+            <div className="flex items-center space-x-2 group">
               <img
                 src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/img/default-avatar.png')}
                 alt={pinUser.username || 'User avatar'}
                 className="w-6 h-6 rounded-full object-cover"
               />
               <span className="text-xs font-medium text-gray-700 group-hover:text-primary">{pinUser.username || 'Anonymous'}</span>
-            </Link>
+            </div>
+            
+            {/* Tombol Aksi */}
             <div className="flex items-center space-x-3">
               <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
                 {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
                 <span className="text-xs">{likeCount}</span>
               </button>
-              <Link href={`/pins/${pin.id}#comments`} className="flex items-center space-x-1 text-gray-500 hover:text-primary">
+              <div className="flex items-center space-x-1 text-gray-500">
                 <FaComment />
                 <span className="text-xs">{pin.comment_count || 0}</span>
-              </Link>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

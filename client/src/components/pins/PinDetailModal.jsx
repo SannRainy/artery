@@ -95,10 +95,7 @@ export default function PinDetailModal({ pin, onClose, isOpen }) { // Tambahkan 
       // Tampilkan notifikasi error
     }
   };
-
-  // Fungsi getHostnameFromUrl sudah tidak diperlukan karena link_url dihapus
-  // const getHostnameFromUrl = (url) => { ... };
-
+  
   if (!isOpen || !pin) return null;
 
   const pinUser = pin.user || {};
