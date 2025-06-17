@@ -1,45 +1,47 @@
+// client/src/components/profile/ProfileContent.jsx
 import { useState, useEffect } from 'react';
-import { getUserPins, getUserActivity } from '../../lib/api/profile'; //
-import UserPins from './UserPins'; //
-import UserActivity from './UserActivity'; //
+import { getUserPins, getUserActivity } from '../../lib/api/profile';
+import UserPins from './UserPins';
+import UserActivity from './UserActivity';
+import LoadingSpinner from '../ui/LoadingSpinner'; // Tambahkan Loading Spinner
 
-const ProfileContent = ({ userId, activeTab }) => { //
-  const [content, setContent] = useState(null); //
-  const [loading, setLoading] = useState(true); //
+const ProfileContent = ({ userId, activeTab, onPinClick }) => { // <-- Terima prop onPinClick
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        setLoading(true); //
+        setLoading(true);
         let data;
         
-        switch (activeTab) { //
-          case 'pins':
-            data = await getUserPins(userId); //
-            break;
-          case 'activity':
-            data = await getUserActivity(userId); //
-            break;
-          default:
-            data = await getUserPins(userId); //
+        if (activeTab === 'pins') {
+          data = await getUserPins(userId);
+        } else if (activeTab === 'activity') {
+          data = await getUserActivity(userId);
+        } else {
+          data = await getUserPins(userId);
         }
         
-        setContent(data); //
+        setContent(data);
       } catch (error) {
-        console.error('Error fetching content:', error); //
+        console.error('Error fetching content:', error);
       } finally {
-        setLoading(false); //
+        setLoading(false);
       }
     };
 
-    fetchContent();
-  }, [userId, activeTab]); //
+    if (userId) {
+      fetchContent();
+    }
+  }, [userId, activeTab]);
 
-  if (loading) return <div className="text-center py-8">Loading...</div>; //
+  if (loading) return <div className="text-center py-8"><LoadingSpinner /></div>;
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      {activeTab === 'pins' && <UserPins pins={content} />}
+    <div className="bg-white rounded-lg shadow p-4 md:p-6">
+      {/* Kirim onPinClick ke UserPins */}
+      {activeTab === 'pins' && <UserPins pins={content} onPinClick={onPinClick} />}
       {activeTab === 'activity' && <UserActivity activities={content} />}
     </div>
   );
