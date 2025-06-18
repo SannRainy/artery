@@ -10,7 +10,7 @@ import { toast } from 'react-toastify'; // <-- 4. Untuk notifikasi
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
 // Hapus 'isFollowing' dan 'handleFollow' dari props, karena akan kita kelola di sini
-const ProfileHeader = ({ user }) => {
+const ProfileHeader = ({ user, isCurrentUser }) => {
   const { user: currentUser } = useAuth(); // Ambil data user yang sedang login
 
   // === PERUBAHAN UTAMA: State Management ===

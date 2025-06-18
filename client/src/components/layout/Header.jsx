@@ -3,11 +3,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
-import { FiSearch, FiPlus, FiBell, FiMessageSquare, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiPlus, FiBell, FiMessageSquare, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
-export default function Header({ onSearch, searchQuery, onResetSearch, onCreateClick }) {
+export default function Header({ onCreateClick }) {
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -22,13 +22,14 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
   }
 
   return (
+    // Pastikan header tetap fixed di atas
     <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
       <div className="container mx-auto px-4">
+        {/* PERUBAHAN: Hapus div flex-1 yang berisi search bar */}
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
-                {/* ... SVG Logo ... */}
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
@@ -36,27 +37,10 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 <span className="ml-2 font-bold text-xl hidden sm:inline">Artery Project</span>
             </Link>
           </div>
-
-          <div className="hidden md:flex flex-1 mx-4 max-w-xl">
-            {/* ... Search Bar Desktop ... */}
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400" />
-              </div>
-              <input type="text" placeholder="Cari pin..." onChange={(e) => onSearch(e.target.value)} value={searchQuery}
-                className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-sm"
-              />
-              {searchQuery && (
-                <button onClick={onResetSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xl" aria-label="Reset search">
-                  &times;
-                </button>
-              )}
-            </div>
-          </div>
-
+          
+          {/* Ini adalah div untuk tombol-tombol kanan */}
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Tombol Notifikasi dan Pesan (Desktop) */}
-            {user && ( // Tampilkan hanya jika user login
+            {user && (
               <>
                 <Link href="/notifications" className="p-2 rounded-full hover:bg-gray-100 hidden sm:block" title="Notifikasi">
                     <FiBell className="text-gray-700 text-xl" />
@@ -64,7 +48,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 <Link href="/messages" className="p-2 rounded-full hover:bg-gray-100 hidden sm:block" title="Pesan">
                     <FiMessageSquare className="text-gray-700 text-xl" />
                 </Link>
-
                 <button
                   onClick={onCreateClick}
                   className="p-2 rounded-full bg-primary text-white hover:bg-primary-dark"
@@ -72,7 +55,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 >
                   <FiPlus className="text-xl" />
                 </button>
-
                 <div className="relative">
                   <button
                     onClick={() => setIsProfileOpen(!isProfileOpen)}
@@ -84,7 +66,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                     </div>
                     <FiChevronDown className="ml-1 text-gray-600 h-4 w-4" />
                   </button>
-
                   {isProfileOpen && (
                     <div id="profile-menu" className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 border border-gray-200" role="menu">
                       <span className="block px-4 py-2 text-xs text-gray-500 border-b mb-1">
@@ -101,7 +82,7 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 </div>
               </>
             )}
-            {!user && ( // Tampilkan tombol Login/Register jika user belum login
+            {!user && (
                 <div className="flex items-center space-x-2">
                     <Link href="/login" className="px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary">
                         Login
@@ -112,24 +93,6 @@ export default function Header({ onSearch, searchQuery, onResetSearch, onCreateC
                 </div>
             )}
           </div>
-        </div>
-
-        {/* Mobile Search Bar */}
-        <div className="md:hidden pb-3">
-          {/* ... Search Bar Mobile ... */}
-          <div className="relative w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400" />
-            </div>
-            <input type="text" placeholder="Cari..." onChange={(e) => onSearch(e.target.value)} value={searchQuery}
-            className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary focus:bg-white text-sm"
-            />
-            {searchQuery && (
-            <button onClick={onResetSearch} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 text-xl" aria-label="Reset search">
-                &times;
-            </button>
-            )}
-        </div>
         </div>
       </div>
     </header>

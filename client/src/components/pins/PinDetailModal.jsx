@@ -12,14 +12,12 @@ import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
-export default function PinDetailModal({ pin: initialPin, isOpen, onClose, isCurrentUser }) {
+export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   const { user } = useAuth();
   
-  const [isFollowing, setIsFollowing] = useState(user?.is_following || false);
-  const [followersCount, setFollowersCount] = useState(user?.followersCount || 0);
-
   const [pin, setPin] = useState(initialPin);
   const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const commentsEndRef = useRef(null);
@@ -46,9 +44,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose, isCur
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setIsFollowing(user?.is_following || false);
-    setFollowersCount(user?.followersCount || 0);
-  }, [user], [pin?.comments]);
+  }, [pin?.comments]);
 
   const handleAction = useCallback(async (action) => {
     if (!user) return;

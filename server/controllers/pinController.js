@@ -1,3 +1,5 @@
+const knex = require('../knex');
+
 exports.createPin = async (req, res) => {
   try {
     console.log('REQ FILE:', req.file);
@@ -26,5 +28,20 @@ exports.createPin = async (req, res) => {
   } catch (err) {
     console.error('CREATE PIN ERROR:', err);
     return res.status(500).json({ error: 'Gagal menyimpan pin di server' });
+  }
+};
+
+exports.getRandomPinTitles = async (req, res) => {
+  try {
+    // Mengambil 5 pin secara acak. .orderByRaw('RANDOM()') berfungsi untuk SQLite & PostgreSQL.
+    const randomPins = await knex('pins')
+      .select('id', 'title') // Ambil id untuk 'key' di React dan 'title' untuk ditampilkan
+  .orderByRaw('RAND()') // Ganti ke RAND() untuk MySQL
+      .limit(5);
+
+    res.json(randomPins);
+  } catch (error) {
+    console.error('Error fetching random pin titles:', error);
+    res.status(500).json({ message: 'Server error saat mengambil judul acak' });
   }
 };

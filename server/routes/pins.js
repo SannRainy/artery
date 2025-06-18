@@ -325,7 +325,24 @@ module.exports = function (db) {
     }
   });
 
-  // --- POST /pins/:pinId/like - Toggle Like/Unlike pin ---
+   router.get('/random-titles', async (req, res) => {
+    const requestId = req.requestId || `req-${Date.now()}`;
+    const timestamp = new Date().toISOString();
+    try {
+      const randomPins = await db('pins')
+        .select('id', 'title')
+    .orderByRaw('RAND()') 
+        .limit(5);
+
+      res.json(randomPins);
+    } catch (err) {
+      console.error(`[${requestId}] [${timestamp}] Failed to fetch random pin titles:`, err.message, err.stack);
+      res.status(500).json({ 
+        error: { message: 'Failed to fetch random titles.', requestId, timestamp } 
+      });
+    }
+  });
+
   router.post('/:pinId/like', authenticate, async (req, res) => {
     const { pinId } = req.params;
     const userId = req.user.id;

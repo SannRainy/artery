@@ -136,5 +136,22 @@ export const getPopularPins = async (limit = 10) => {
   }
 };
 
-// Fungsi getUserPins (dari profile.js) juga bisa ada di sini jika lebih logis
-// export const getUserPins = async (userId, page = 1, limit = 30) => { ... };
+export const getPopularTags = async () => {
+  try {
+    const response = await api.get('/tags/popular'); // Pastikan endpoint ini ada di server
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching popular tags:', error.response?.data || error.message);
+    throw error;
+  }
+};
+
+export const getRandomPinTitles = async () => {
+  try {
+    const response = await api.get('/pins/random-titles');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching random pin titles:', error.response?.data || error.message);
+    throw error;
+  }
+};
