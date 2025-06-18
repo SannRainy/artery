@@ -38,24 +38,46 @@ export default function Home() {
   const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
   
   const fetchAndSetPins = useCallback(async (pageNum, query, category, isAppending) => {
-    if (!isAuthenticated) return;
+    // Ensure auth state is settled before fetching
+    if (authLoading) return; 
+    if (!isAuthenticated) {
+        setPins([]);
+        setLoading(false);
+        setHasMore(false);
+        return;
+    }
+
     setLoading(true);
     setError(null);
     try {
       const categoryToSend = category === 'Semua' ? '' : category;
-      const response = query
-        ? await searchPins(query, pageNum) // searchPins sekarang hanya butuh query dan page
-        : await getPins({ page: pageNum, category: categoryToSend });
+      const isGeneralBrowsing = !query && !categoryToSend; // True if no search and no specific category
+      
+      let response;
+      if (query) {
+        response = await searchPins(query, pageNum);
+      } else {
+        response = await getPins({ 
+            page: pageNum, 
+            category: categoryToSend, 
+            mode: isGeneralBrowsing ? 'random' : '' // Use random mode for general browsing
+        });
+      }
 
       const newPins = response?.data || [];
       const pagination = response?.pagination;
 
-      setPins(prev => isAppending ? [...prev, ...newPins] : newPins);
+      setPins(prev => (pageNum > 1 && isAppending) ? [...prev, ...newPins] : newPins);
       
-      if (pagination) {
+      if (isGeneralBrowsing) {
+        // For "unlimited random" general browsing, as long as we get pins, there's "more".
+        // If newPins is empty, then it's "habis" for this attempt.
+        setHasMore(newPins.length > 0); 
+      } else if (pagination) {
         setHasMore(pageNum < pagination.totalPages);
       } else {
-        setHasMore(newPins.length > 0);
+        // Fallback for responses without standard pagination (e.g. search might be different)
+        setHasMore(newPins.length > 0); 
       }
     } catch (err) {
       console.error('Failed to fetch pins:', err);
@@ -64,11 +86,18 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]); // authLoading is added
 
   useEffect(() => {
-    fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
-  }, [page, searchQuery, activeCategory, isAuthenticated, fetchAndSetPins]);
+    if (!authLoading && isAuthenticated) {
+      fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
+    } else if (!authLoading && !isAuthenticated) {
+      // Clear pins and stop loading if user logs out or was never logged in
+      setPins([]);
+      setLoading(false);
+      setHasMore(false);
+    }
+  }, [page, searchQuery, activeCategory, isAuthenticated, authLoading, fetchAndSetPins]);
 
   const handleCategoryClick = (category) => {
     if (activeCategory !== category) {

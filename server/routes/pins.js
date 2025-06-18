@@ -100,11 +100,12 @@ module.exports = function (db) {
       
       if (mode === 'random') {
         pinsQuery.orderBy(db.raw('RAND()'));
-      } else {
+        pinsQuery.limit(limit); // Untuk mode acak, kita ambil 'limit' item tanpa offset
+                                // agar terasa lebih "tidak terbatas". Nomor halaman diabaikan untuk offset.
+      } else { // Untuk kategori spesifik, pin pengguna, atau pencarian (jika pencarian menggunakan rute ini)
         pinsQuery.orderBy('p.created_at', 'desc');
+        pinsQuery.limit(limit).offset(offset); // Terapkan offset untuk hasil yang dipaginasi dan diurutkan
       }
-
-      pinsQuery.limit(limit).offset(offset);
 
       const pinsData = await pinsQuery;
       const totalPinsResult = await countQueryBuilder.countDistinct('p_count.id as total').first();

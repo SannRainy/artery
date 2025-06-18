@@ -31,18 +31,16 @@ export const createPin = async (formData) => {
   }
 };
 
-export const getPins = async (page = 1, limit = 30, category = '', userId = null) => {
+export const getPins = async ({page = 1, limit = 30, category = '', userId = null, mode =''}) => {
   try {
     const params = { page, limit };
     if (category && category.trim() !== '' && category !== 'Semua') {
       params.category = category;
     }
-    if (userId) {
-      params.user_id = userId;
+    if (mode) {
+      params.mode = mode;
     }
 
-    // Jika untuk halaman publik, getAuthHeaders() mungkin tidak mengirim token,
-    // dan server route GET /pins harusnya tidak memerlukan autentikasi.
     const response = await api.get('/pins', {
       headers: getAuthHeaders(), // Kirim token jika ada, server akan menentukan is_liked
       params,
