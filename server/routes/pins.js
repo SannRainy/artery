@@ -48,7 +48,10 @@ module.exports = function (db) {
     'p.created_at', 'p.updated_at', 'p.user_id'
   ];
 
-  router.get('/', async (req, res) => {
+  // Tambahkan middleware 'authenticate' di sini.
+  // Middleware ini seharusnya mengisi req.user jika token valid,
+  // dan membiarkan req.user kosong jika tidak ada token (untuk akses publik).
+  router.get('/', authenticate, async (req, res) => {
     let { page = 1, limit = 30, category = '', user_id: filter_user_id, mode } = req.query;
     const currentAuthenticatedUserId = req.user ? req.user.id : null;
     const requestId = req.requestId || `req-${Date.now()}`;

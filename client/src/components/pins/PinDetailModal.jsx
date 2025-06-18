@@ -67,25 +67,31 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   };
 
   const handleFollow = async () => {
-      if (!currentUser) {
+      // Gunakan 'user' dari useAuth() untuk mengecek pengguna yang login
+      if (!user) { 
         toast.info("Silakan login untuk mengikuti pengguna.");
+        return;
+      }
+      if (!pin || !pin.user) {
+        // toast.error("Informasi pengguna pin tidak tersedia."); // Anda bisa menambahkan toast jika perlu
+        console.error("Informasi pengguna pin tidak tersedia untuk aksi follow.");
+        return;
+      }
+      // Mencegah mengikuti diri sendiri
+      if (user.id === pin.user.id) {
         return;
       }
   
       // Optimistic UI Update
       const originalIsFollowing = isFollowing;
-      const originalFollowersCount = followersCount;
       setIsFollowing(!originalIsFollowing);
-      setFollowersCount(prev => (originalIsFollowing ? prev - 1 : prev + 1));
   
       try {
-        await followUser(user.id);
+        await followUser(pin.user.id); // Targetkan ID pemilik pin
       } catch (error) {
         console.error("Gagal follow/unfollow:", error);
-        toast.error("Terjadi kesalahan.");
-        // Rollback jika gagal
+        // toast.error("Terjadi kesalahan saat mengikuti pengguna."); // Anda bisa menambahkan toast jika perlu
         setIsFollowing(originalIsFollowing);
-        setFollowersCount(originalFollowersCount);
       }
     };
 
