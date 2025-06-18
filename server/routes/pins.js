@@ -349,6 +349,19 @@ module.exports = function (db) {
         liked: newLikeStatus,
         new_like_count: parseInt(likeCountResult.count, 10) || 0 // Pastikan default ke 0
       });
+
+      if (newLikeStatus === true) { // Hanya kirim notif saat me-like, bukan unlike
+        const pinOwner = await db('pins').where({ id: pinId }).select('user_id').first();
+        // Kirim notifikasi jika yang me-like bukan pemilik pin
+        if (pinOwner && pinOwner.user_id !== userId) {
+          await db('notifications').insert({
+            user_id: pinOwner.user_id,
+            actor_id: userId,
+            type: 'like',
+            entity_id: pinId
+          });
+        }
+      }
     } catch (err) {
       console.error(`[${requestId}] [${timestamp}] Error toggling like:`, err.message, err.stack);
       res.status(500).json({ error: { message: 'Failed to toggle like.', requestId, timestamp }});
@@ -397,6 +410,15 @@ module.exports = function (db) {
             user: { id: newCommentData.uid, username: newCommentData.username, avatar_url: newCommentData.avatar_url }
         };
         res.status(201).json(formattedComment);
+
+        if (pinOwner && pinOwner.user_id !== userId) {
+        await db('notifications').insert({
+          user_id: pinOwner.user_id,
+          actor_id: userId,
+          type: 'comment',
+          entity_id: pinIdParam
+        });
+      }
     } catch (err) {
         console.error(`[${requestId}] [${timestamp}] Error adding comment:`, err.message, err.stack ? `\nStack: ${err.stack}`: '');
         res.status(500).json({ error: { message: 'Failed to add comment.', details: err.message, requestId, timestamp }});

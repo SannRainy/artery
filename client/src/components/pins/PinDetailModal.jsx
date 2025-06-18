@@ -12,18 +12,20 @@ import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
-export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
+export default function PinDetailModal({ pin: initialPin, isOpen, onClose, isCurrentUser }) {
   const { user } = useAuth();
   
+  const [isFollowing, setIsFollowing] = useState(user?.is_following || false);
+  const [followersCount, setFollowersCount] = useState(user?.followersCount || 0);
+
   const [pin, setPin] = useState(initialPin);
   const [loading, setLoading] = useState(true);
-  const [isFollowing, setIsFollowing] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const commentsEndRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !initialPin?.id) return;
 
     const fetchPinDetails = async () => {
       setLoading(true);
@@ -44,7 +46,9 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [pin?.comments]);
+    setIsFollowing(user?.is_following || false);
+    setFollowersCount(user?.followersCount || 0);
+  }, [user], [pin?.comments]);
 
   const handleAction = useCallback(async (action) => {
     if (!user) return;
@@ -66,12 +70,28 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     handleAction(() => likePin(pin.id)).catch(() => setPin(originalPin));
   };
 
-  const handleFollow = () => {
-    if (!pin.user || user.id === pin.user.id) return;
-    const originalIsFollowing = isFollowing;
-    setIsFollowing(!originalIsFollowing);
-    handleAction(() => followUser(pin.user.id)).catch(() => setIsFollowing(originalIsFollowing));
-  };
+  const handleFollow = async () => {
+      if (!currentUser) {
+        toast.info("Silakan login untuk mengikuti pengguna.");
+        return;
+      }
+  
+      // Optimistic UI Update
+      const originalIsFollowing = isFollowing;
+      const originalFollowersCount = followersCount;
+      setIsFollowing(!originalIsFollowing);
+      setFollowersCount(prev => (originalIsFollowing ? prev - 1 : prev + 1));
+  
+      try {
+        await followUser(user.id);
+      } catch (error) {
+        console.error("Gagal follow/unfollow:", error);
+        toast.error("Terjadi kesalahan.");
+        // Rollback jika gagal
+        setIsFollowing(originalIsFollowing);
+        setFollowersCount(originalFollowersCount);
+      }
+    };
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();

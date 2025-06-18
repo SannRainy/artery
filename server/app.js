@@ -23,12 +23,13 @@ const userRoutes = require('./routes/users');
 const tagRoutes = require('./routes/tags');
 const pinRoutes = require('./routes/pins')(db);
 const messageRoutes = require('./routes/messages')(db);
+const notificationRoutes = require('./routes/notifications')(db);
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Seringkali API berjalan di port berbeda dari frontend
 
 
-// --- Middleware Esensial ---
+// --- Middleware Esensial ---  
 app.use(helmet());
 
 // Compression middleware
@@ -95,6 +96,7 @@ app.use('/api/v1/users', userRoutes(db));
 app.use('/api/v1/tags', authenticate, tagRoutes(db)); 
 app.use('/api/v1/pins', pinRoutes); 
 app.use('/api/v1/messages', messageRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 if(messageRoutes) {
     app.use('/api/v1/messages', messageRoutes);

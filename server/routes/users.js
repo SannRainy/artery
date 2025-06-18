@@ -366,6 +366,15 @@ module.exports = function (db) {
         await db('follows').insert({ follower_id: currentUserId, following_id: targetUserId, created_at: db.fn.now() });
         res.json({ following: true });
       }
+
+      if (targetUserId !== currentUserId && !existingFollow) { 
+        await db('notifications').insert({
+          user_id: targetUserId, 
+          actor_id: currentUserId, 
+          type: 'follow',
+          entity_id: currentUserId 
+        });
+      }
     } catch (err) {
       console.error(`[${requestId}] Follow error:`, err);
       res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});

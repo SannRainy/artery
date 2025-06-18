@@ -8,6 +8,7 @@ import PinCreateModal from '../components/pins/PinCreateModal';
 import PinDetailModal from '../components/pins/PinDetailModal';
 import { getPins, searchPins } from '../services/pins';
 import Header from '../components/layout/Header';
+import { likePin as toggleLikeService } from '../services/pins'; // Import service untuk like/unlike
 import debounce from 'lodash.debounce';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 
@@ -124,6 +125,51 @@ export default function Home() {
   }, [router.isReady, router.query.pinId, pins]);
   
   const handlePinCreated = (newPin) => setPins(prev => [newPin, ...prev]);
+
+  const handlePinLikeToggle = useCallback(async (pinToUpdate) => {
+    if (!pinToUpdate) return;
+
+    const originalPinInArray = pins.find(p => p.id === pinToUpdate.id);
+    const originalIsLiked = originalPinInArray?.is_liked;
+    const originalLikeCount = originalPinInArray?.like_count;
+
+    // Optimistic update
+    const optimisticUpdate = (prevItems) =>
+      prevItems.map(p =>
+        p.id === pinToUpdate.id
+          ? { ...p, is_liked: !p.is_liked, like_count: p.is_liked ? (p.like_count || 0) - 1 : (p.like_count || 0) + 1 }
+          : p
+      );
+
+    setPins(optimisticUpdate);
+    if (selectedPin && selectedPin.id === pinToUpdate.id) {
+      setSelectedPin(prev => ({ ...prev, is_liked: !prev.is_liked, like_count: prev.is_liked ? (prev.like_count || 0) - 1 : (prev.like_count || 0) + 1 }));
+    }
+
+    try {
+      const response = await toggleLikeService(pinToUpdate.id); // API call
+      // Update with server response
+      const serverUpdate = (prevItems) =>
+        prevItems.map(p =>
+          p.id === pinToUpdate.id
+            ? { ...p, is_liked: response.liked, like_count: response.new_like_count }
+            : p
+        );
+      setPins(serverUpdate);
+      if (selectedPin && selectedPin.id === pinToUpdate.id) {
+        setSelectedPin(prev => ({ ...prev, is_liked: response.liked, like_count: response.new_like_count }));
+      }
+    } catch (error) {
+      console.error("Failed to toggle like:", error);
+      // Revert optimistic update on error
+      const revertUpdate = (prevItems) => prevItems.map(p => p.id === pinToUpdate.id ? { ...p, is_liked: originalIsLiked, like_count: originalLikeCount } : p);
+      setPins(revertUpdate);
+      if (selectedPin && selectedPin.id === pinToUpdate.id) {
+        setSelectedPin(prev => ({ ...prev, is_liked: originalIsLiked, like_count: originalLikeCount }));
+      }
+    }
+  }, [pins, selectedPin, setPins, setSelectedPin]);
+
   const breakpointColumnsObj = { default: 5, 1280: 4, 1024: 3, 768: 2, 640: 2 };
 
   if (authLoading || !isAuthenticated) {
@@ -160,7 +206,12 @@ export default function Home() {
           >
             {pins.map((pin, index) => (
               <div key={`${pin.id}-${index}`} onClick={() => handleOpenPinDetail(pin)}>
-                <PinCard pin={pin} index={index} ref={index === pins.length - 1 ? lastPinRef : null} />
+                <PinCard 
+                  pin={pin} 
+                  index={index} 
+                  ref={index === pins.length - 1 ? lastPinRef : null} 
+                  onLikeToggle={() => handlePinLikeToggle(pin)} // Teruskan callback ke PinCard
+                />
               </div>
             ))}
           </Masonry>
@@ -177,7 +228,12 @@ export default function Home() {
       </main>
 
       {selectedPin && (
-        <PinDetailModal pin={selectedPin} isOpen={!!selectedPin} onClose={handleClosePinDetail} />
+        <PinDetailModal 
+          pin={selectedPin} 
+          isOpen={!!selectedPin} 
+          onClose={handleClosePinDetail} 
+          onLikeToggle={() => handlePinLikeToggle(selectedPin)} // Teruskan callback ke PinDetailModal
+        />
       )}
       <PinCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPinCreated={handlePinCreated} />
     </div>

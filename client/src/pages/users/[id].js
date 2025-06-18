@@ -6,7 +6,7 @@ import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileContent from '../../components/profile/ProfileContent';
 import ProfileSidebar from '../../components/profile/ProfileSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getUserProfile } from '../../lib/api/profile';
+import { getUserProfile, followUser as followUserService } from '../../lib/api/profile';
 import PinDetailModal from '../../components/pins/PinDetailModal';
 
 export default function ProfilePage() {
@@ -44,6 +44,41 @@ export default function ProfilePage() {
     fetchUserProfile();
   }, [id, router]);
 
+  const handleFollowToggle = useCallback(async () => {
+    if (!profileUser || !currentUser || profileUser.id === currentUser.id) return;
+
+    const originalIsFollowing = profileUser.is_following;
+    // Follower count di server tidak dikembalikan langsung oleh endpoint follow,
+    // jadi kita akan update secara optimis di client atau perlu refetch profile.
+    // Untuk saat ini, kita update optimis.
+    const originalFollowersCount = profileUser.followersCount; 
+
+    setProfileUser(prevUser => ({
+      ...prevUser,
+      is_following: !prevUser.is_following,
+      followersCount: prevUser.is_following 
+        ? (prevUser.followersCount || 0) - 1 
+        : (prevUser.followersCount || 0) + 1,
+    }));
+
+    try {
+      const response = await followUserService(profileUser.id);
+      setProfileUser(prevUser => ({
+        ...prevUser,
+        is_following: response.following,
+        // Jika server mengembalikan followersCount baru, gunakan itu:
+        // followersCount: response.newFollowersCount || prevUser.followersCount
+      }));
+    } catch (error) {
+      console.error('Failed to toggle follow:', error);
+      setProfileUser(prevUser => ({ // Revert
+        ...prevUser,
+        is_following: originalIsFollowing,
+        followersCount: originalFollowersCount,
+      }));
+    }
+  }, [profileUser, currentUser, setProfileUser]);
+
   if (loading || !profileUser) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -56,7 +91,8 @@ export default function ProfilePage() {
     <div className="bg-gray-50 min-h-screen">
       <ProfileHeader 
         user={profileUser} 
-        isCurrentUser={currentUser?.id === profileUser.id} 
+        isCurrentUser={currentUser?.id === profileUser.id}
+        onFollowToggle={handleFollowToggle} // Teruskan callback
       />
       
       {/* === PERUBAHAN UTAMA DI SINI === */}

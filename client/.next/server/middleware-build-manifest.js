@@ -30,15 +30,10 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/login.js"
     ],
-    "/messages": [
+    "/notifications": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/messages.js"
-    ],
-    "/users/[id]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/users/[id].js"
+      "static/chunks/pages/notifications.js"
     ]
   },
   "ampFirstPages": []
