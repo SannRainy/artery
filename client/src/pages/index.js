@@ -154,7 +154,7 @@ export default function Home() {
   }, [router.isReady, router.query, pins]);
 
   const handlePinCreated = (newPin) => setPins(prev => [newPin, ...prev]);
-  const handlePinLikeToggle = useCallback(async (pinToUpdate) => { /* ... (kode tidak berubah) ... */ }, [pins, selectedPin]);
+  const handlePinLikeToggle = useCallback(async (pinToUpdate) => [pins, selectedPin]);
 
   const breakpointColumnsObj = { default: 5, 1280: 4, 1024: 3, 768: 2, 640: 2 };
 

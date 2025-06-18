@@ -30,7 +30,7 @@ export default function SearchHero({ onSearch, onSuggestionClick, searchQuery, o
       style={{ backgroundImage: "linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('/img/default-bg.jpg')" }}
     >
       <h1 className="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">
-        Change your wardrobe. Find exciting goods.
+        No Art No Game No Life
       </h1>
       <div className="w-full max-w-xl">
 
