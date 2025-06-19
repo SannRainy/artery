@@ -22,10 +22,10 @@ export default function Header({ onCreateClick }) {
   }
 
   return (
-    // Pastikan header tetap fixed di atas
+
     <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">
       <div className="container mx-auto px-4">
-        {/* PERUBAHAN: Hapus div flex-1 yang berisi search bar */}
+
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
@@ -38,7 +38,6 @@ export default function Header({ onCreateClick }) {
             </Link>
           </div>
           
-          {/* Ini adalah div untuk tombol-tombol kanan */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             {user && (
               <>

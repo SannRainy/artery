@@ -7,10 +7,10 @@ export const useInView = (options) => {
 
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
-      // Jika elemen masuk ke viewport, update state
+      
       if (entry.isIntersecting) {
         setIsInView(true);
-        // Setelah terlihat, kita tidak perlu mengamatinya lagi untuk efisiensi
+        
         observer.unobserve(entry.target);
       }
     }, options);

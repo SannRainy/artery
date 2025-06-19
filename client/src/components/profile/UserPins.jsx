@@ -2,7 +2,7 @@
 import Masonry from 'react-masonry-css';
 import PinCard from '../pins/PinCard';
 
-const UserPins = ({ pins, onPinClick }) => { // <-- Terima onPinClick
+const UserPins = ({ pins, onPinClick }) => { 
   if (!pins || pins.length === 0) {
     return (
       <div className="text-center py-10 text-gray-500">
@@ -11,7 +11,7 @@ const UserPins = ({ pins, onPinClick }) => { // <-- Terima onPinClick
     );
   }
 
-  // Konfigurasi breakpoint untuk masonry layout
+  
   const breakpointColumnsObj = {
     default: 4,
     1100: 3,
@@ -21,11 +21,11 @@ const UserPins = ({ pins, onPinClick }) => { // <-- Terima onPinClick
   return (
     <Masonry
       breakpointCols={breakpointColumnsObj}
-      className="masonry-grid" // Class dari global.css
-      columnClassName="masonry-grid_column" // Class dari global.css
+      className="masonry-grid" 
+      columnClassName="masonry-grid_column" 
     >
       {pins.map((pin, index) => (
-        // Bungkus dengan div yang memiliki event onClick
+        
         <div key={pin.id} onClick={() => onPinClick(pin)}>
           <PinCard pin={pin} index={index} />
         </div>

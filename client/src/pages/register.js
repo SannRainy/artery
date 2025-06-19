@@ -29,7 +29,7 @@ export default function RegisterPage() {
       </Head>
 
       <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-        {/* Background elements */}
+
         <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
           <div className="absolute top-20 -left-20 w-64 h-64 bg-blue-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
           <div className="absolute top-40 right-20 w-64 h-64 bg-purple-100 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
@@ -38,7 +38,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10">
           <section className="sm:mx-auto sm:w-full sm:max-w-md">
-            {/* Logo Placeholder - Consistent with login page */}
+
             <div className="flex justify-center">
               <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mb-4 transition-all duration-500 hover:scale-105">
                 <svg

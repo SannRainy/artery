@@ -1,14 +1,13 @@
 import api from './api';
-import Cookies from 'js-cookie'; // npm install js-cookie
+import Cookies from 'js-cookie';
 
-// LOGIN
 export const login = async (email, password) => {
   try {
     const response = await api.post('/users/login', { email, password });
 
     const token = response.data.token;
     if (token) {
-      // Simpan token di cookie agar bisa diakses SSR
+
       Cookies.set('token', token, { expires: 1 }); // 1 hari
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
@@ -19,7 +18,6 @@ export const login = async (email, password) => {
   }
 };
 
-// REGISTER
 export const register = async (username, email, password) => {
   try {
     const response = await api.post('/users/register', { username, email, password });
@@ -29,7 +27,6 @@ export const register = async (username, email, password) => {
   }
 };
 
-// GET CURRENT USER
 export const getCurrentUser = async () => {
   try {
     const token = Cookies.get('token');
@@ -44,7 +41,7 @@ export const getCurrentUser = async () => {
   }
 };
 
-// Error handler
+
 const handleError = (error, defaultMessage) => {
   if (error.response) {
     const message = error.response.data?.message || error.response.statusText || defaultMessage;

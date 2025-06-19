@@ -1,7 +1,7 @@
 // client/src/components/layout/SearchHero.jsx
 import { useState, useEffect } from 'react';
 import { FiSearch } from 'react-icons/fi';
-import { getRandomPinTitles } from '../../services/pins'; // Import fungsi baru
+import { getRandomPinTitles } from '../../services/pins';
 import { toast } from 'react-toastify';
 
 export default function SearchHero({ onSearch, onSuggestionClick, searchQuery, onResetSearch }) {
@@ -22,7 +22,7 @@ export default function SearchHero({ onSearch, onSuggestionClick, searchQuery, o
       }
     };
     fetchRandomTitles();
-  }, []); // Dijalankan sekali setiap halaman dimuat ulang
+  }, []); 
 
   return (
     <div 

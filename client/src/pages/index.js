@@ -11,10 +11,10 @@ import Header from '../components/layout/Header';
 import { likePin as toggleLikeService } from '../services/pins';
 import debounce from 'lodash.debounce';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import SearchHero from '../components/layout/SearchHero'; // <-- 1. IMPORT KOMPONEN BARU
+import SearchHero from '../components/layout/SearchHero'; 
 
 export default function Home() {
-  // ... (semua state yang sudah ada tetap sama)
+
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const router = useRouter();
 
@@ -28,7 +28,7 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   
-  // ... (semua useEffect dan handler yang sudah ada tetap sama) ...
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace('/login');
@@ -38,7 +38,7 @@ export default function Home() {
   const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
   
   const fetchAndSetPins = useCallback(async (pageNum, query, category, isAppending) => {
-    // Ensure auth state is settled before fetching
+
     if (authLoading) return; 
     if (!isAuthenticated) {
         setPins([]);
@@ -51,7 +51,7 @@ export default function Home() {
     setError(null);
     try {
       const categoryToSend = category === 'Semua' ? '' : category;
-      const isGeneralBrowsing = !query && !categoryToSend; // True if no search and no specific category
+      const isGeneralBrowsing = !query && !categoryToSend;
       
       let response;
       if (query) {
@@ -60,7 +60,7 @@ export default function Home() {
         response = await getPins({ 
             page: pageNum, 
             category: categoryToSend, 
-            mode: isGeneralBrowsing ? 'random' : '' // Use random mode for general browsing
+            mode: isGeneralBrowsing ? 'random' : '' 
         });
       }
 
@@ -70,13 +70,12 @@ export default function Home() {
       setPins(prev => (pageNum > 1 && isAppending) ? [...prev, ...newPins] : newPins);
       
       if (isGeneralBrowsing) {
-        // For "unlimited random" general browsing, as long as we get pins, there's "more".
-        // If newPins is empty, then it's "habis" for this attempt.
+
         setHasMore(newPins.length > 0); 
       } else if (pagination) {
         setHasMore(pageNum < pagination.totalPages);
       } else {
-        // Fallback for responses without standard pagination (e.g. search might be different)
+
         setHasMore(newPins.length > 0); 
       }
     } catch (err) {
@@ -86,13 +85,13 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading]); // authLoading is added
+  }, [isAuthenticated, authLoading]);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
     } else if (!authLoading && !isAuthenticated) {
-      // Clear pins and stop loading if user logs out or was never logged in
+
       setPins([]);
       setLoading(false);
       setHasMore(false);
@@ -114,16 +113,16 @@ export default function Home() {
   }, 500), []);
   
   const handleSuggestionClick = (query) => {
-    debouncedSearch.cancel(); // Batalkan pencarian yang mungkin sedang tertunda
+    debouncedSearch.cancel();
     setActiveCategory('Semua');
     setPage(1);
     setSearchQuery(query);
   };
 
-  // <-- 2. TAMBAHKAN HANDLER UNTUK MERESET PENCARIAN
+
   const handleResetSearch = () => {
     setSearchQuery('');
-    // Tidak perlu mengubah kategori, karena search sudah otomatis set ke 'Semua'
+
   };
   
   const observer = useRef();
@@ -138,7 +137,6 @@ export default function Home() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
 
-  // ... (sisa handler seperti handleOpenPinDetail, handlePinCreated, handlePinLikeToggle tetap sama)
   const handleOpenPinDetail = (pin) => router.push(`/?pinId=${pin.id}`, `/pins/${pin.id}`, { shallow: true });
   const handleClosePinDetail = () => router.push('/', undefined, { shallow: true });
   useEffect(() => {
@@ -189,7 +187,6 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Sisa dari komponen tidak berubah */}
         {(loading && pins.length === 0) ? (
           <div className="text-center py-10"><LoadingSpinner /></div>
         ) : error ? (

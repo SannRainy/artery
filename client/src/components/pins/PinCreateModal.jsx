@@ -26,10 +26,9 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
       formData.append('title', data.title);
       formData.append('description', data.description || '');
       formData.append('category', data.category);
-      // link_url sudah dihapus
 
       if (data.image && data.image[0]) {
-        formData.append('image_url', data.image[0]); // Pastikan ini 'image_url'
+        formData.append('image_url', data.image[0]);
       } else {
         throw new Error('Gambar pin wajib diunggah.');
       }
@@ -41,7 +40,7 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
       onClose();
     } catch (err) {
       console.error("Error creating pin:", err);
-      // ... (error handling seperti sebelumnya) ...
+
       let message = 'Terjadi kesalahan yang tidak diketahui saat mengunggah pin.';
       if (err instanceof Error) {
         message = err.message;
@@ -115,10 +114,10 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
           <div>
             <label htmlFor="image" className="block text-sm font-medium text-gray-700">Gambar Pin</label>
             <input
-              id="image" // Ini adalah id untuk input, bukan nama field di FormData
+              id="image" 
               type="file"
               accept="image/*"
-              {...register('image', { required: 'Gambar wajib diunggah' })} // 'image' adalah nama field di react-hook-form
+              {...register('image', { required: 'Gambar wajib diunggah' })} 
               className="mt-1 block w-full text-sm text-gray-500
                 file:mr-4 file:py-2 file:px-4
                 file:rounded-full file:border-0
@@ -128,8 +127,6 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
             />
             {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
           </div>
-
-          {/* Input untuk link_url sudah dihapus */}
 
           {errorMessage && (
             <div className="text-red-600 bg-red-100 p-3 rounded-md text-center">

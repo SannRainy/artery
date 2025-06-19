@@ -9,6 +9,7 @@ import { formatDate } from '../../utils/helpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
+import { toast } from 'react-toastify'; 
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
 
@@ -30,7 +31,11 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
       try {
         const fullPinData = await getPinById(initialPin.id);
         setPin(fullPinData);
-        setIsFollowing(fullPinData.user?.is_following || false);
+
+        if (user && fullPinData.user) {
+          setIsFollowing(fullPinData.user.is_following || false);
+        }
+
       } catch (error) {
         console.error("Gagal memuat detail pin:", error);
         onClose();
@@ -40,7 +45,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     };
 
     fetchPinDetails();
-  }, [initialPin, isOpen, onClose]);
+  }, [initialPin, isOpen, onClose, user]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -52,7 +57,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
       await action();
     } catch (err) {
       console.error("Gagal melakukan aksi:", err);
-      // Anda bisa menambahkan notifikasi error di sini
+
     }
   }, [user]);
 
@@ -66,34 +71,51 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     handleAction(() => likePin(pin.id)).catch(() => setPin(originalPin));
   };
 
-  const handleFollow = async () => {
-      // Gunakan 'user' dari useAuth() untuk mengecek pengguna yang login
-      if (!user) { 
-        toast.info("Silakan login untuk mengikuti pengguna.");
-        return;
-      }
-      if (!pin || !pin.user) {
-        // toast.error("Informasi pengguna pin tidak tersedia."); // Anda bisa menambahkan toast jika perlu
-        console.error("Informasi pengguna pin tidak tersedia untuk aksi follow.");
-        return;
-      }
-      // Mencegah mengikuti diri sendiri
-      if (user.id === pin.user.id) {
-        return;
-      }
-  
-      // Optimistic UI Update
-      const originalIsFollowing = isFollowing;
-      setIsFollowing(!originalIsFollowing);
-  
-      try {
-        await followUser(pin.user.id); // Targetkan ID pemilik pin
-      } catch (error) {
-        console.error("Gagal follow/unfollow:", error);
-        // toast.error("Terjadi kesalahan saat mengikuti pengguna."); // Anda bisa menambahkan toast jika perlu
-        setIsFollowing(originalIsFollowing);
-      }
-    };
+   const handleFollow = useCallback(async () => {
+    let isCurrentlyFollowing = isFollowing;
+    if (!user) {
+      toast.info("Silakan login untuk mengikuti pengguna.");
+      return;
+    }
+    if (!pin || !pin.user || !pin.user.id) {
+      toast.error("Informasi pengguna pin tidak tersedia.");
+      return;
+    }
+    if (user.id === pin.user.id) {
+      return;
+    }
+
+    setIsFollowing(!isCurrentlyFollowing); 
+
+    try {
+      await followUser(pin.user.id);
+
+      const message = !isCurrentlyFollowing
+        ? `Anda sekarang mengikuti ${pin.user.username}.`
+        : `Anda berhenti mengikuti ${pin.user.username}.`;
+      toast.success(message);
+    } catch (error) {
+      console.error("Gagal follow/unfollow:", error); 
+      toast.error("Terjadi kesalahan saat mengubah status mengikuti."); 
+      setIsFollowing(isCurrentlyFollowing); 
+    }
+  }, [user, pin, isFollowing]); 
+
+  const handleUnfollow = useCallback(async () => {
+    if (!user || !pin || !pin.user || !pin.user.id || user.id === pin.user.id) return;
+
+    const originalIsFollowing = isFollowing;
+    setIsFollowing(false); 
+
+    try {
+      await followUser(pin.user.id); 
+      toast.success(`Anda berhenti mengikuti ${pin.user.username}.`);
+    } catch (error) {
+      console.error("Gagal berhenti mengikuti pengguna:", error);
+      toast.error("Terjadi kesalahan saat berhenti mengikuti pengguna.");
+      setIsFollowing(originalIsFollowing); 
+    }
+  }, [user, pin, isFollowing]);
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
@@ -121,17 +143,17 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     : '/img/default-avatar.png';
 
   return (
-    // Backdrop gelap, klik di sini akan menutup modal
+    
     <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>
       
-      {/* Kontainer untuk margin dan posisi relatif tombol close */}
+      
       <div className="relative w-full h-full max-w-6xl max-h-full p-4 md:p-8 lg:p-12">
-        {/* Konten Modal Aktual dengan tinggi tetap */}
+        
         <div 
           className="relative bg-white rounded-3xl shadow-2xl w-full h-full flex flex-col md:flex-row overflow-hidden"
-          onClick={(e) => e.stopPropagation()} // Mencegah modal tertutup saat konten diklik
+          onClick={(e) => e.stopPropagation()} 
         >
-          {/* Tombol Close sekarang di dalam dan relatif terhadap konten modal */}
+          
           <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 z-10 p-2 rounded-full bg-white/50 hover:bg-gray-200 hover:text-gray-900 transition-colors">
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -140,7 +162,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
             <div className="flex w-full h-full justify-center items-center"><LoadingSpinner /></div>
           ) : (
             <>
-              {/* Kolom Gambar (Kiri) */}
+              
               <div className="w-full md:w-1/2 bg-gray-100 flex-shrink-0">
                 <div className="relative w-full h-full">
                   <Image
@@ -153,9 +175,9 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                 </div>
               </div>
 
-              {/* Kolom Detail (Kanan) */}
+              
               <div className="w-full md:w-1/2 p-6 flex flex-col">
-                {/* Bagian Atas: Judul, Info User, Follow */}
+                
                 <div className="flex-shrink-0 pb-4 border-b border-gray-200">
                   <h1 className="text-3xl font-bold text-gray-900 break-words pr-8">{pin.title}</h1>
                   {pin.description && <p className="text-gray-600 mt-2 text-sm break-words">{pin.description}</p>}
@@ -170,14 +192,19 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                       <p className="font-semibold text-sm text-gray-800 group-hover:underline">{pin.user.username}</p>
                     </Link>
                     {user && user.id !== pin.user.id && (
-                      <button onClick={handleFollow} className={`font-semibold py-2 px-4 rounded-full text-sm transition-colors ${isFollowing ? 'bg-gray-200 text-black' : 'bg-primary text-white'}`}>
+                      <button
+                        onClick={isFollowing ? handleUnfollow : handleFollow}
+                        className={`font-semibold py-2 px-4 rounded-full text-sm transition-colors ${
+                          isFollowing ? 'bg-gray-200 text-black' : 'bg-primary text-white'
+                        }`}
+                      >
                         {isFollowing ? 'Diikuti' : 'Ikuti'}
                       </button>
                     )}
                   </div>
                 </div>
 
-                {/* Bagian Tengah: Komentar (Bisa di-scroll) */}
+                
                 <div className="flex-grow my-4 overflow-y-auto pr-2 space-y-5">
                   <h2 className="font-semibold text-md sticky top-0 bg-white py-2">Komentar</h2>
                   {pin.comments?.length > 0 ? pin.comments.map((comment) => (
@@ -202,7 +229,6 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                   <div ref={commentsEndRef} />
                 </div>
 
-                {/* Bagian Bawah: Aksi dan Form Komentar */}
                 {user && (
                   <div className="flex-shrink-0 mt-auto pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center mb-3">

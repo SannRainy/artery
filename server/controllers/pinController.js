@@ -15,14 +15,14 @@ exports.createPin = async (req, res) => {
     const newPin = {
       title,
       description,
-      tags: JSON.parse(tags || '[]'),  // handle JSON
-      image_url: `/uploads/${req.file.filename}`,  // assuming static path
-      user_id: req.user.id, // dari JWT
+      tags: JSON.parse(tags || '[]'),  
+      image_url: `/uploads/${req.file.filename}`,  
+      user_id: req.user.id, 
       created_at: new Date()
     };
 
-    // Simpan ke database (contoh pakai Prisma atau ORM kamu)
-    const savedPin = await Pin.create(newPin); // sesuaikan dengan ORM kamu
+
+    const savedPin = await Pin.create(newPin);
 
     return res.status(201).json(savedPin);
   } catch (err) {
@@ -33,10 +33,10 @@ exports.createPin = async (req, res) => {
 
 exports.getRandomPinTitles = async (req, res) => {
   try {
-    // Mengambil 5 pin secara acak. .orderByRaw('RANDOM()') berfungsi untuk SQLite & PostgreSQL.
+
     const randomPins = await knex('pins')
-      .select('id', 'title') // Ambil id untuk 'key' di React dan 'title' untuk ditampilkan
-  .orderByRaw('RAND()') // Ganti ke RAND() untuk MySQL
+      .select('id', 'title') 
+  .orderByRaw('RAND()')
       .limit(5);
 
     res.json(randomPins);

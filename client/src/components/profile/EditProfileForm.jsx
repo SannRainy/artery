@@ -117,7 +117,6 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
         </div>
       </div>
 
-      {/* Bagian Tombol Aksi */}
       <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
         <Button type="submit" disabled={loading || (!isDirty && !newAvatarFile)}>
           {loading ? 'Menyimpan...' : 'Simpan Perubahan'}

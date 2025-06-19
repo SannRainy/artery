@@ -11,7 +11,7 @@ const uploadPath = path.join(__dirname, '..', '..', 'public/uploads');
 try {
   fs.mkdirSync(uploadPath, { recursive: true });
 } catch (err) {
-  // Silent error is fine if directory already exists
+
 }
 
 const storage = multer.diskStorage({
@@ -48,9 +48,6 @@ module.exports = function (db) {
     'p.created_at', 'p.updated_at', 'p.user_id'
   ];
 
-  // Tambahkan middleware 'authenticate' di sini.
-  // Middleware ini seharusnya mengisi req.user jika token valid,
-  // dan membiarkan req.user kosong jika tidak ada token (untuk akses publik).
   router.get('/', authenticate, async (req, res) => {
     let { page = 1, limit = 30, category = '', user_id: filter_user_id, mode } = req.query;
     const currentAuthenticatedUserId = req.user ? req.user.id : null;
@@ -82,32 +79,24 @@ module.exports = function (db) {
         countQueryBuilder.where('p_count.user_id', filter_user_id);
       }
       
-      // === PERUBAHAN LOGIKA FILTER UTAMA DI SINI ===
       if (category && category.trim() !== '' && category !== 'Semua') {
         const categoryName = category.trim().toLowerCase();
-        
-        // Buat subquery untuk mendapatkan semua pin_id yang sesuai dengan kategori
+
         const subquery = db('pin_tags')
           .join('tags', 'pin_tags.tag_id', 'tags.id')
           .where('tags.name', categoryName)
           .select('pin_tags.pin_id');
 
-        // Filter query utama dan query hitung menggunakan hasil dari subquery
         pinsQuery.whereIn('p.id', subquery);
         countQueryBuilder.whereIn('p_count.id', subquery);
       }
-      // === AKHIR PERUBAHAN ===
-      
-      // GroupBy tidak lagi diperlukan karena subquery sudah menangani duplikasi
-      // pinsQuery.groupBy(...pinBasicColumns.map(col => col.startsWith('p.') ? col : `p.${col}`), 'u.username', 'u.avatar_url'); 
-      
       if (mode === 'random') {
         pinsQuery.orderBy(db.raw('RAND()'));
-        pinsQuery.limit(limit); // Untuk mode acak, kita ambil 'limit' item tanpa offset
-                                // agar terasa lebih "tidak terbatas". Nomor halaman diabaikan untuk offset.
-      } else { // Untuk kategori spesifik, pin pengguna, atau pencarian (jika pencarian menggunakan rute ini)
+        pinsQuery.limit(limit); 
+                                
+      } else { 
         pinsQuery.orderBy('p.created_at', 'desc');
-        pinsQuery.limit(limit).offset(offset); // Terapkan offset untuk hasil yang dipaginasi dan diurutkan
+        pinsQuery.limit(limit).offset(offset);
       }
 
       const pinsData = await pinsQuery;
@@ -248,7 +237,7 @@ module.exports = function (db) {
   });
 
   // --- GET /pins/search ---
-  router.get('/search', authenticate, async (req, res) => { // Tambahkan authenticate jika is_liked diperlukan
+  router.get('/search', authenticate, async (req, res) => { 
     let { query, page = 1, limit = 30 } = req.query;
     const currentAuthenticatedUserId = req.user ? req.user.id : null;
     const requestId = req.requestId || `req-${Date.now()}`;

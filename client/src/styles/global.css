@@ -6,7 +6,6 @@ body {
   @apply bg-gray-50;
 }
 
-/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -21,19 +20,19 @@ body {
 
 .masonry-grid {
   display: flex;
-  margin-left: -1rem; /* Sesuaikan nilai ini dengan setengah dari gap Anda, misal gap-4 -> 1rem */
+  margin-left: -1rem; 
   width: auto;
 }
 
 .masonry-grid_column {
-  padding-left: 1rem; /* Harus sama dengan nilai absolut dari margin-left di atas */
+  padding-left: 1rem;
   background-clip: padding-box;
 }
 
 .masonry-grid_column > div {
-  margin-bottom: 1rem; /* Sesuaikan dengan gap yang Anda inginkan, misal 1rem -> 16px */
+  margin-bottom: 1rem;
 }
-/* Animation for loading spinner */
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -44,7 +43,6 @@ body {
   animation: spin 1s linear infinite;
 }
 
-/* Masonry layout adjustments */
 .masonry-grid {
   display: flex;
   margin-left: -1rem;
@@ -56,7 +54,6 @@ body {
   background-clip: padding-box;
 }
 
-/* Pin hover effects */
 .pin-hover-overlay {
   @apply absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-10 transition-all duration-300;
 }

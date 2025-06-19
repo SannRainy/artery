@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { getUserPins, getUserActivity } from '../../lib/api/profile';
 import UserPins from './UserPins';
 import UserActivity from './UserActivity';
-import LoadingSpinner from '../ui/LoadingSpinner'; // Tambahkan Loading Spinner
+import LoadingSpinner from '../ui/LoadingSpinner'; 
 
-const ProfileContent = ({ userId, activeTab, onPinClick }) => { // <-- Terima prop onPinClick
+const ProfileContent = ({ userId, activeTab, onPinClick }) => { 
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +40,7 @@ const ProfileContent = ({ userId, activeTab, onPinClick }) => { // <-- Terima pr
 
   return (
     <div className="bg-white rounded-lg shadow p-4 md:p-6">
-      {/* Kirim onPinClick ke UserPins */}
+      
       {activeTab === 'pins' && <UserPins pins={content} onPinClick={onPinClick} />}
       {activeTab === 'activity' && <UserActivity activities={content} />}
     </div>

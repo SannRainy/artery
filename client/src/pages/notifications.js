@@ -48,23 +48,20 @@ const NotificationItem = ({ notif }) => {
       message = 'memberi notifikasi baru.';
   }
 
-  // === PERBAIKAN UTAMA DI SINI ===
-  // Logika yang lebih aman untuk menentukan path avatar aktor
-  let actorAvatarSrc = '/img/default-avatar.png'; // Default fallback
+  let actorAvatarSrc = '/img/default-avatar.png'; 
   if (notif.actorAvatar) {
     if (notif.actorAvatar.startsWith('/uploads/')) {
       actorAvatarSrc = `${BASE_URL}${notif.actorAvatar}`;
     } else {
-      // Asumsikan path lain adalah path lokal yang valid (seperti /img/default-avatar.png)
+      
       actorAvatarSrc = notif.actorAvatar;
     }
   }
 
-  // Logika untuk thumbnail pin
   const pinThumbnailSrc = notif.pinThumbnail?.startsWith('/uploads/') 
     ? `${BASE_URL}${notif.pinThumbnail}` 
     : notif.pinThumbnail;
-  // ================================
+
 
   return (
     <Link
@@ -74,7 +71,6 @@ const NotificationItem = ({ notif }) => {
       <IkonNotifikasi tipe={notif.type} />
       <div className="flex-grow flex items-center gap-3">
         <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-          {/* Gunakan variabel actorAvatarSrc yang sudah diproses */}
           <Image src={actorAvatarSrc} layout="fill" objectFit="cover" alt={notif.actorUsername} key={actorAvatarSrc} />
         </div>
         <div>
@@ -93,7 +89,6 @@ const NotificationItem = ({ notif }) => {
   );
 };
 
-// Data dummy untuk kolom kanan (tidak berubah)
 const dummyAnnouncements = [
     { id: 1, title: "Update Pemeliharaan", message: "Akan ada maintenance server terjadwal pada hari Sabtu pukul 02:00 WIB.", time: "2 hari lalu" },
     { id: 2, title: "Fitur Baru: Boards!", message: "Sekarang Anda dapat mengelompokkan pin favorit Anda ke dalam board. Coba sekarang!", time: "5 hari lalu" },
@@ -105,7 +100,6 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   const markAsRead = useCallback(() => {
-    // Cek jika ada notifikasi yang belum dibaca sebelum mengirim request
     const hasUnread = notifications.some(n => !n.is_read);
     if (hasUnread) {
         markNotificationsAsRead().catch(err => console.error("Gagal menandai notifikasi:", err));

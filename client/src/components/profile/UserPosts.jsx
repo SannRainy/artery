@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../lib/api';
-import PinCard from '../pins/PinCard'; // Anda perlu membuat komponen ini
+import PinCard from '../pins/PinCard'; 
 
 const UserPosts = ({ userId }) => {
   const [posts, setPosts] = useState([]);

@@ -3,7 +3,6 @@ const express = require('express');
 module.exports = function (db) {
   const router = express.Router();
 
-  // Get all tags
   router.get('/', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
@@ -26,7 +25,6 @@ module.exports = function (db) {
     }
   });
 
-  // Get popular tags
   router.get('/popular', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
@@ -53,7 +51,6 @@ module.exports = function (db) {
     }
   });
 
-  // Get pins by tag
   router.get('/:tag/pins', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();

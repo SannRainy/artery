@@ -3,10 +3,10 @@ import Link from 'next/link';
 import { 
   UserCircleIcon, 
   ShieldCheckIcon, 
-  BellIcon,
   LockClosedIcon,
   Cog8ToothIcon 
 } from '@heroicons/react/24/outline';
+
 
 
 export default function SettingsSidebar({ active = 'profile' }) {
@@ -17,41 +17,32 @@ export default function SettingsSidebar({ active = 'profile' }) {
       href: '/settings/profile', 
       icon: UserCircleIcon 
     },
-
     { 
       id: 'account', 
       label: 'Keamanan Akun', 
-      href: '#', 
+      href: '/settings/account',
       icon: ShieldCheckIcon 
     },
     { 
-      id: 'preferences', 
+      id: 'preference',
       label: 'Preferensi', 
-      href: '#', 
+      href: '/settings/preference',
       icon: Cog8ToothIcon 
     },
     { 
       id: 'privacy', 
       label: 'Privasi & Data', 
-      href: '#', 
+      href: '/settings/privacy',
       icon: LockClosedIcon 
-    },
-    { 
-      id: 'notifications', 
-      label: 'Notifikasi', 
-      href: '#', 
-      icon: BellIcon 
     },
   ];
 
   return (
-
     <nav className="flex flex-col space-y-1 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
       {navItems.map(item => (
         <Link 
           key={item.id}
           href={item.href}
-
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-150 ${
             active === item.id 
               ? 'bg-gray-100 text-gray-900'

@@ -105,18 +105,18 @@ export default function MessagesPage() {
     <>
       <Head><title>Pesan | Artery Project</title></Head>
       <div className="h-screen w-screen flex bg-white overflow-hidden">
-        {/* Kolom Daftar Percakapan */}
+
         <div className="w-full md:w-1/3 lg:w-1/4 border-r border-gray-200 flex flex-col">
           <div className="p-4 border-b flex-shrink-0 flex items-center justify-between">
             <Link href="/" className="p-2 rounded-full hover:bg-gray-100">
                 <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
             </Link>
             <h1 className="text-xl font-bold">Pesan</h1>
-            {/* === Tombol Cari Orang Dipindahkan ke Sini === */}
+
             <button onClick={() => setIsFindUserModalOpen(true)} className="p-2 rounded-full hover:bg-gray-100" title="Cari orang baru">
               <UserPlusIcon className="h-6 w-6 text-gray-700" />
             </button>
-            {/* ========================================= */}
+
           </div>
           <div className="flex-grow overflow-y-auto">
             {loadingConversations ? (
@@ -142,11 +142,9 @@ export default function MessagesPage() {
           </div>
         </div>
 
-        {/* Kolom Chat */}
         <div className="hidden md:flex w-2/3 lg:w-3/4 flex-col">
           {selectedConversation ? (
             <>
-              {/* Header Chat Window */}
               <div className="p-4 border-b flex items-center flex-shrink-0">
                 <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3">
                     <Image src={selectedConversation.participantAvatar?.startsWith('/uploads/') ? `${BASE_URL}${selectedConversation.participantAvatar}`: '/img/default-avatar.png'} layout="fill" objectFit="cover" alt={selectedConversation.participantUsername} />
@@ -154,7 +152,6 @@ export default function MessagesPage() {
                 <h2 className="font-semibold">{selectedConversation.participantUsername}</h2>
               </div>
               
-              {/* Body Chat Window */}
               <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
                 {loadingMessages ? (
                   <div className="text-center"><LoadingSpinner /></div>
@@ -168,7 +165,6 @@ export default function MessagesPage() {
                     </div>
                   ))
                 ) : (
-                  // === Tampilan Jika Chat Masih Kosong ===
                   <div className="h-full flex items-center justify-center text-center text-gray-500">
                     <div>
                       <p>Ini adalah awal percakapan Anda dengan</p>
@@ -176,12 +172,10 @@ export default function MessagesPage() {
                       <p className="text-xs mt-2">Kirim pesan untuk memulai!</p>
                     </div>
                   </div>
-                  // ======================================
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Footer Chat Window */}
               <div className="p-4 border-t bg-white flex-shrink-0">
                 <form onSubmit={handleSendMessage} className="flex items-center">
                     <input
@@ -190,13 +184,13 @@ export default function MessagesPage() {
                       onChange={e => setNewMessage(e.target.value)}
                       placeholder="Ketik pesan..."
                       className="flex-grow p-3 rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary"
-                      disabled={isSending} // <-- Tambahkan disabled saat mengirim
+                      disabled={isSending} 
                     />
                     <button 
                       type="submit" 
                       disabled={isSending || !newMessage.trim()} 
                       className="ml-3 p-3 rounded-full bg-primary text-white disabled:bg-gray-300 transition-colors flex items-center justify-center"
-                      style={{ width: '48px', height: '48px' }} // Atur ukuran tetap
+                      style={{ width: '48px', height: '48px' }} 
                     >
                       {isSending ? (
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -215,7 +209,6 @@ export default function MessagesPage() {
         </div>
       </div>
       
-      {/* Render Modal */}
       <FindUserModal 
         isOpen={isFindUserModalOpen} 
         onClose={() => setIsFindUserModalOpen(false)} 

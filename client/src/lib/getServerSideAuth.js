@@ -10,7 +10,7 @@ export async function getServerSideProps(context) {
     const decoded = verify(token, process.env.JWT_SECRET);
     return {
       props: {
-        userId: decoded.id, // bisa kamu teruskan ke komponen
+        userId: decoded.id, 
       },
     };
   } catch (err) {

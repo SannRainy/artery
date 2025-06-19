@@ -25,7 +25,7 @@ export default function LoginForm() {
       toast.error(result.message)
     }
   } catch (err) {
-    // Fallback: kalau kamu tetap jaga kemungkinan throw (optional)
+    
     const fallbackMsg = 'Terjadi kesalahan tak terduga.'
     setErrorMessage(fallbackMsg)
     toast.error(fallbackMsg)
@@ -35,7 +35,7 @@ export default function LoginForm() {
 }
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>} {/* Error message display */}
+      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>} 
 
       <Input
         label="Email"

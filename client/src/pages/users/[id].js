@@ -48,9 +48,7 @@ export default function ProfilePage() {
     if (!profileUser || !currentUser || profileUser.id === currentUser.id) return;
 
     const originalIsFollowing = profileUser.is_following;
-    // Follower count di server tidak dikembalikan langsung oleh endpoint follow,
-    // jadi kita akan update secara optimis di client atau perlu refetch profile.
-    // Untuk saat ini, kita update optimis.
+
     const originalFollowersCount = profileUser.followersCount; 
 
     setProfileUser(prevUser => ({
@@ -66,12 +64,11 @@ export default function ProfilePage() {
       setProfileUser(prevUser => ({
         ...prevUser,
         is_following: response.following,
-        // Jika server mengembalikan followersCount baru, gunakan itu:
-        // followersCount: response.newFollowersCount || prevUser.followersCount
+
       }));
     } catch (error) {
       console.error('Failed to toggle follow:', error);
-      setProfileUser(prevUser => ({ // Revert
+      setProfileUser(prevUser => ({
         ...prevUser,
         is_following: originalIsFollowing,
         followersCount: originalFollowersCount,
@@ -92,14 +89,13 @@ export default function ProfilePage() {
       <ProfileHeader 
         user={profileUser} 
         isCurrentUser={currentUser?.id === profileUser.id}
-        onFollowToggle={handleFollowToggle} // Teruskan callback
+        onFollowToggle={handleFollowToggle} 
       />
       
-      {/* === PERUBAHAN UTAMA DI SINI === */}
+
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
-          {/* Sidebar */}
           <div className="w-full lg:w-1/4 lg:sticky lg:top-24">
             <ProfileSidebar 
               user={profileUser} 
@@ -108,7 +104,6 @@ export default function ProfilePage() {
             />
           </div>
           
-          {/* Konten Utama (Pins, Activity, etc) */}
           <div className="w-full lg:w-3/4">
             <ProfileContent 
               userId={profileUser.id} 
@@ -119,7 +114,6 @@ export default function ProfilePage() {
 
         </div>
       </div>
-      {/* === AKHIR PERUBAHAN === */}
 
       {selectedPin && (
         <PinDetailModal 

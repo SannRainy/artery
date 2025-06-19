@@ -13,10 +13,8 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
   const [aspectRatio, setAspectRatio] = useState(3 / 4);
 
-  // Hook untuk deteksi animasi
   const [animationRef, isInView] = useInView({ threshold: 0.1, triggerOnce: true });
 
-  // Fungsi untuk menggabungkan ref dari forwardRef (infinite scroll) dan ref untuk animasi
   const setRefs = useCallback(
     (node) => {
       animationRef.current = node;
@@ -76,7 +74,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   const pinUser = pin.user || {};
 
   return (
-    // Div terluar untuk animasi dan ref
+
     <div
       ref={setRefs}
       className={`transition-all duration-700 ease-out ${
@@ -84,10 +82,9 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
       }`}
       style={{ transitionDelay: `${(index % 20) * 50}ms` }}
     >
-      {/* Div ini yang akan menerima event onClick dari parent (index.js) */}
+
       <div className="cursor-zoom-in rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white">
         
-        {/* Bagian Gambar */}
         <div className="relative">
           <div className="w-full bg-gray-100" style={{ aspectRatio: aspectRatio }}>
             <img
@@ -101,7 +98,6 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
           </div>
         </div>
 
-        {/* Bagian Detail di Bawah Gambar */}
         <div className="p-3">
           {pin.tags && pin.tags.length > 0 && (
             <div className="flex items-center space-x-1 flex-wrap mb-2">
@@ -112,7 +108,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             </div>
           )}
           <div className="flex justify-between items-center">
-            {/* User Info - tidak perlu Link karena card ini sendiri adalah pemicu */}
+
             <div className="flex items-center space-x-2 group">
               <img
                 src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/img/default-avatar.png')}
@@ -122,7 +118,6 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
               <span className="text-xs font-medium text-gray-700 group-hover:text-primary">{pinUser.username || 'Anonymous'}</span>
             </div>
             
-            {/* Tombol Aksi */}
             <div className="flex items-center space-x-3">
               <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
                 {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}

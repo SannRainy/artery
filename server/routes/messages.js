@@ -4,7 +4,7 @@ const { authenticate } = require('../middleware/auth.js');
 
 module.exports = function (db) {
   const router = express.Router();
-  router.use(authenticate); // Semua rute pesan memerlukan autentikasi
+  router.use(authenticate); 
 
   router.post('/initiate', async (req, res) => {
     const { recipientId } = req.body;
@@ -18,7 +18,7 @@ module.exports = function (db) {
     }
 
     try {
-      // Cari percakapan yang sudah ada antara kedua pengguna
+
       const existingConversation = await db('conversation_participants as cp1')
         .join('conversation_participants as cp2', 'cp1.conversation_id', 'cp2.conversation_id')
         .where('cp1.user_id', senderId)
@@ -27,14 +27,13 @@ module.exports = function (db) {
         .first();
       
       if (existingConversation) {
-        // Jika sudah ada, kembalikan ID-nya
+
         return res.status(200).json({ conversationId: existingConversation.conversation_id });
       }
 
-      // Jika tidak ada, buat percakapan baru dalam sebuah transaksi
       const newConversation = await db.transaction(async trx => {
         const [conversation] = await trx('conversations').insert({}).returning('id');
-        const conversationId = conversation.id || conversation; // Penyesuaian untuk driver DB berbeda
+        const conversationId = conversation.id || conversation; 
 
         await trx('conversation_participants').insert([
           { user_id: senderId, conversation_id: conversationId },
@@ -50,7 +49,6 @@ module.exports = function (db) {
       res.status(500).json({ error: 'Failed to initiate conversation.' });
     }
   });
-  // GET /api/v1/messages - Mendapatkan daftar semua percakapan pengguna
   router.get('/', async (req, res) => {
     try {
       const conversations = await db('conversation_participants as cp1')
@@ -79,7 +77,6 @@ module.exports = function (db) {
     }
   });
 
-  // GET /api/v1/messages/:conversationId - Mendapatkan semua pesan dalam satu percakapan
   router.get('/:conversationId', async (req, res) => {
     const { conversationId } = req.params;
     try {
@@ -89,7 +86,6 @@ module.exports = function (db) {
         .select('messages.*', 'users.id as userId', 'users.username', 'users.avatar_url')
         .orderBy('messages.created_at', 'asc');
       
-      // Format respons agar konsisten
       const formattedMessages = messages.map(msg => ({
         id: msg.id,
         text: msg.text,

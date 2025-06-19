@@ -4,7 +4,7 @@ import Input from '../ui/Input'
 import Button from '../ui/Button'
 import Link from 'next/link'
 import { useState } from 'react'
-import { toast } from 'react-toastify' // <== pastikan react-toastify sudah diinstal
+import { toast } from 'react-toastify' 
 
 export default function RegisterForm() {
   const { register: authRegister } = useAuth()

@@ -3,9 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import debounce from 'lodash.debounce';
-import api from '../../services/api'; // Pastikan path ini benar
-import { followUser } from '../../lib/api/profile'; // Pastikan path ini benar
-import { initiateConversation } from '../../services/messages'; // Pastikan path ini benar
+import api from '../../services/api'; 
+import { followUser } from '../../lib/api/profile'; 
+import { initiateConversation } from '../../services/messages'; 
 import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -66,7 +66,7 @@ export default function FindUserModal({ isOpen, onClose }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
   const searchUsers = useCallback(debounce(async (searchQuery) => {
     setLoading(true);
     try {

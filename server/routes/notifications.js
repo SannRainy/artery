@@ -6,7 +6,6 @@ module.exports = function(db) {
   const router = express.Router();
   router.use(authenticate);
 
-  // GET /api/v1/notifications - Mengambil semua notifikasi untuk user
   router.get('/', async (req, res) => {
     try {
       const notifications = await db('notifications as n')
@@ -23,7 +22,7 @@ module.exports = function(db) {
           'actor.id as actorId',
           'actor.username as actorUsername',
           'actor.avatar_url as actorAvatar',
-          'p.image_url as pinThumbnail' // Ambil thumbnail pin jika ada
+          'p.image_url as pinThumbnail' 
         );
       res.json(notifications);
     } catch (err) {
@@ -32,7 +31,6 @@ module.exports = function(db) {
     }
   });
 
-  // POST /api/v1/notifications/mark-as-read - Menandai semua notif sebagai terbaca
   router.post('/mark-as-read', async (req, res) => {
     try {
       await db('notifications')

@@ -7,7 +7,6 @@ export default function Document() {
         <meta charSet="utf-8" />
         <link rel="icon" href="/favicon.ico" />
         
-        {/* Preconnect to Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link 
           rel="preconnect" 
@@ -15,7 +14,6 @@ export default function Document() {
           crossOrigin="anonymous" 
         />
         
-        {/* Only include fonts you actually use */}
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"

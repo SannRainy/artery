@@ -11,7 +11,6 @@ function MyApp({ Component, pageProps }) {
 
   useEffect(() => {
     const handleRouteChange = (url) => {
-      // Optional analytics or logic
     };
 
     router.events.on('routeChangeComplete', handleRouteChange);

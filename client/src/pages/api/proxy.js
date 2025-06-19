@@ -1,30 +1,30 @@
 import axios from 'axios'
 
-const apiUrl = 'http://localhost:3000'  // Change this to your backend API URL
+const apiUrl = 'http://localhost:3000'  
 
 export default async function handler(req, res) {
   try {
-    // Forwarding the request to the backend API
+    
     const { method, body, headers } = req
 
-    // Create a configuration object for the API request
+    
     const config = {
-      method: method,  // Method (GET, POST, etc.)
-      url: `${apiUrl}${req.url}`,  // Proxying the URL
+      method: method,  
+      url: `${apiUrl}${req.url}`, 
       headers: {
-        ...headers,  // Forward the headers (such as authorization)
+        ...headers,  
         'Content-Type': 'application/json',
       },
-      data: body,  // Send the request body
+      data: body,  
     }
 
-    // Sending the request to the backend API
+
     const response = await axios(config)
 
-    // Forward the response from the API back to the client
+
     res.status(response.status).json(response.data)
   } catch (error) {
-    // Handle errors and send them to the client
+
     res.status(error.response?.status || 500).json({
       message: error.response?.data?.message || 'Something went wrong',
     })

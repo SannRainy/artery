@@ -286,7 +286,6 @@ module.exports = function (db) {
     }
   });
 
-  // ✅ GET USER BOARDS
   router.get('/:id/boards', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
@@ -302,14 +301,13 @@ module.exports = function (db) {
     }
   });
 
-  // ✅ GET USER PINS
   router.get('/:id/pins', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
     try {
       const pins = await db('pins')
         .where({ user_id: req.params.id })
-        // link_url sudah dihapus dari select
+
         .select('id', 'title', 'description', 'image_url', 'created_at')
         .orderBy('created_at', 'desc');
       res.json(pins);
@@ -319,7 +317,6 @@ module.exports = function (db) {
     }
   });
 
-  // ✅ GET USER ACTIVITY
   router.get('/:id/activity', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
@@ -340,12 +337,12 @@ module.exports = function (db) {
     }
   });
 
-  // ✅ FOLLOW/UNFOLLOW USER
+
   router.post('/:id/follow', authenticate, async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
     try {
-      // Pastikan ID user dari token dan params adalah angka sebelum dibandingkan
+
       const targetUserId = parseInt(req.params.id, 10);
       const currentUserId = req.user.id;
 

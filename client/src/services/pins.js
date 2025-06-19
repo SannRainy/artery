@@ -2,9 +2,8 @@
 import api from './api';
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token'); // Di AuthContexts, Anda menggunakan Cookies.get('token')
-                                            // Pastikan konsisten atau gunakan metode yang sesuai.
-                                            // Untuk client-side API calls, localStorage umumnya OK.
+  const token = localStorage.getItem('token'); 
+
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
@@ -15,7 +14,7 @@ export const followUser = (userId) => {
 export const createPin = async (formData) => {
   try {
 
-    const response = await api.post('/pins', formData); // Headers FormData dihandle oleh interceptor
+    const response = await api.post('/pins', formData); 
     return response.data;
   } catch (error) {
     console.error('Error creating pin:', {
@@ -42,10 +41,10 @@ export const getPins = async ({page = 1, limit = 30, category = '', userId = nul
     }
 
     const response = await api.get('/pins', {
-      headers: getAuthHeaders(), // Kirim token jika ada, server akan menentukan is_liked
+      headers: getAuthHeaders(),
       params,
     });
-    return response.data; // Diharapkan berisi { data: [pins...], pagination: {...} }
+    return response.data; 
   } catch (error) {
     console.error('Error fetching pins:', error.response?.data || error.message);
     throw error;
@@ -55,7 +54,7 @@ export const getPins = async ({page = 1, limit = 30, category = '', userId = nul
 export const searchPins = async (query, page = 1, limit = 30) => {
   try {
     const response = await api.get('/pins/search', {
-      headers: getAuthHeaders(), // Kirim token jika ada, server bisa mengembalikan is_liked
+      headers: getAuthHeaders(), 
       params: { query, page, limit },
     });
     return response.data;
@@ -67,7 +66,7 @@ export const searchPins = async (query, page = 1, limit = 30) => {
 
 export const getPinById = async (id) => {
   try {
-    // Mengirim header auth agar server bisa menentukan `is_liked` untuk user saat ini
+
     const response = await api.get(`/pins/${id}`, { headers: getAuthHeaders() });
     return response.data;
   } catch (error) {
@@ -81,7 +80,7 @@ export const likePin = async (pinId) => {
     const response = await api.post(`/pins/${pinId}/like`, null, {
       headers: getAuthHeaders(),
     });
-    // Server sekarang diharapkan mengembalikan { liked: true, new_like_count: N }
+    
     return response.data;
   } catch (error) {
     console.error(`Failed to like pin with ID ${pinId}:`, error.response?.data || error.message);
@@ -92,7 +91,7 @@ export const likePin = async (pinId) => {
 export const unlikePin = async (pinId) => {
   try {
 
-    const response = await api.post(`/pins/${pinId}/like`, null, { // Sama seperti likePin
+    const response = await api.post(`/pins/${pinId}/like`, null, { 
       headers: getAuthHeaders(),
     });
 
@@ -120,11 +119,11 @@ export const addComment = async (pinId, text) => {
   }
 };
 
-// Fungsi populer bisa tetap sama, server akan menentukan data yang dikembalikan
+
 export const getPopularPins = async (limit = 10) => {
   try {
-    const response = await api.get('/pins/popular', { // Pastikan endpoint ini ada di server
-      headers: getAuthHeaders(), // Server bisa gunakan ini untuk `is_liked`
+    const response = await api.get('/pins/popular', {
+      headers: getAuthHeaders(), 
       params: { limit },
     });
     return response.data;
@@ -136,7 +135,7 @@ export const getPopularPins = async (limit = 10) => {
 
 export const getPopularTags = async () => {
   try {
-    const response = await api.get('/tags/popular'); // Pastikan endpoint ini ada di server
+    const response = await api.get('/tags/popular'); 
     return response.data;
   } catch (error) {
     console.error('Error fetching popular tags:', error.response?.data || error.message);

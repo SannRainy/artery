@@ -2,15 +2,12 @@
 
 const jwt = require('jsonwebtoken');
 
-/**
- * Middleware untuk memverifikasi JWT dan meng–attach payload ke req.user
- */
 exports.authenticate = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const requestId = req.requestId;        // di-assign di app.js
+  const requestId = req.requestId;        
   const timestamp = new Date().toISOString();
 
-  // 1) Pastikan header Authorization ada
+
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(403).json({
       error: {
@@ -21,7 +18,6 @@ exports.authenticate = (req, res, next) => {
     });
   }
 
-  // 2) Extract token
   const token = authHeader.split(' ')[1];
   const secretKey = process.env.JWT_SECRET;
   if (!secretKey) {
@@ -35,10 +31,9 @@ exports.authenticate = (req, res, next) => {
     });
   }
 
-  // 3) Verify token
   try {
     const decoded = jwt.verify(token, secretKey);
-    req.user = decoded;  // payload JWT nanti bisa diakses di req.user
+    req.user = decoded;  
     next();
   } catch (err) {
     console.error(`[${requestId}] JWT verification failed:`, err.message);

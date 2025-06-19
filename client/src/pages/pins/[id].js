@@ -2,7 +2,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { getPinById } from '../../services/pins'
 import { useAuth } from '../../contexts/AuthContexts'
-import PinDetailModal from '../../components/pins/PinDetailModal'
+import PinDetailModal from '../../components/pins/PinDetailModal' 
 import Head from 'next/head'
 
 export default function PinDetailPage() {
@@ -10,28 +10,31 @@ export default function PinDetailPage() {
   const { id } = router.query
   const [pin, setPin] = useState(null)
   const [loading, setLoading] = useState(true)
-  const { user } = useAuth()  // Kalau butuh info user, misalnya untuk like button, dsb
-
+  const [isFollowing, setIsFollowing] = useState(false)
+  const { user } = useAuth()  
+  
   useEffect(() => {
-    if (!id) return
 
     const fetchPin = async () => {
+      setLoading(true);
       try {
-        const data = await getPinById(id)
-        setPin(data)
-      } catch (error) {
+        const pin = await getPinById(id)
+        setPinData(pin);
+      } catch (error) { 
         console.error('Error fetching pin:', error)
-        router.push('/') // Redirect ke homepage jika gagal load pin
+
       } finally {
         setLoading(false)
       }
+    };
+
+  if (id) {
+      fetchPin();
     }
+  }, [id, user]);
 
-    fetchPin()
-  }, [id, router])
-
-  if (loading) {
-    return (
+  if (loading) {  
+    return (  
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-primary"></div>
       </div>
@@ -39,7 +42,7 @@ export default function PinDetailPage() {
   }
 
   if (!pin) {
-    // Kalau data pin tidak ada setelah loading selesai, bisa redirect atau tampilkan pesan
+    
     return (
       <div className="flex justify-center items-center h-screen">
         <p className="text-gray-500">Pin not found.</p>
@@ -47,17 +50,19 @@ export default function PinDetailPage() {
     )
   }
 
+
   return (
     <>
       <Head>
-        <title>{pin.title} | Artery Project</title>
+         <title>{pin.title} | Artery Project</title>
       </Head>
 
       <div className="container mx-auto px-4 py-8">
         <PinDetailModal 
-          pin={pin} 
-          onClose={() => router.push('/')} 
-        />
+           pin={pin}
+           isOpen={true}
+           onClose={() => router.push('/')}
+         />
       </div>
     </>
   )
