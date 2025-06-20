@@ -26,13 +26,10 @@ const messageRoutes = require('./routes/messages')(db);
 const notificationRoutes = require('./routes/notifications')(db);
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Seringkali API berjalan di port berbeda dari frontend
+const PORT = process.env.PORT || 3000; 
 
-
-// --- Middleware Esensial ---  
 app.use(helmet());
 
-// Compression middleware
 app.use(compression());
 
 app.use((req, res, next) => {

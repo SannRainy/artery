@@ -1,4 +1,4 @@
-// File: src/pages/settings/[tab].jsx
+// client/src/pages/settings/[tab].jsx
 
 import { useEffect } from 'react';
 import Head from 'next/head';
@@ -6,56 +6,76 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContexts';
 
+// Import komponen
 import SettingsSidebar from '../../components/settings/SettingsSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import Footer from '../../components/layout/Footer'; 
+import { FiLogOut } from 'react-icons/fi';
 
+// Import konten tab
 import EditProfileForm from '../../components/profile/EditProfileForm';
 import AccountSettings from '../../components/settings/AccountSettings'; 
 import Preferences from '../../components/settings/Preferences';    
 import Privacy from '../../components/settings/Privacy';           
 
-function SettingsPageLayout({ user, activeTab, children }) {
+// Komponen Layout untuk Halaman Pengaturan
+function SettingsPageLayout({ user, activeTab, onLogout, children }) {
+  const sidebarItems = [
+    { id: 'profile', label: 'Personal details' },
+    { id: 'payment', label: 'Payment Information' }, // Sesuaikan dengan kebutuhan
+    { id: 'safety', label: 'Safety' },
+    { id: 'preferences', label: 'Preferences' },
+    { id: 'notifications', label: 'Notifications' }
+  ];
 
   return (
     <>
       <Head>
-        <title>{`Pengaturan ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`} | Artery Project</title>
+        <title>{`Settings - ${activeTab}`} | Artery</title>
       </Head>
-      <div className="min-h-screen bg-gray-50">
+
+      <div className="min-h-screen bg-gray-50 pt-24">
         <main className="container mx-auto max-w-6xl px-4 py-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-2">
-              <Link
-                href={`/users/${user.id}`}
-                className="p-2 rounded-full hover:bg-gray-200 transition-colors"
-                aria-label="Kembali ke profil"
-              >
-                <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
-              </Link>
-              <h1 className="text-3xl font-bold text-gray-900">Pengaturan</h1>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            {/* Sidebar Kiri */}
+            <div className="lg:col-span-3">
+              <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <h3 className="font-bold text-lg mb-4 px-2">Profile settings</h3>
+                <nav className="flex flex-col space-y-1">
+                   <SettingsSidebar active={activeTab} />
+                </nav>
+                <div className="border-t my-4"></div>
+                <button 
+                  onClick={onLogout}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg font-semibold text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                >
+                  <FiLogOut className="h-5 w-5" />
+                  <span>Log out</span>
+                </button>
+              </div>
             </div>
-            <p className="text-gray-500 ml-14">Kelola informasi profil dan preferensi akun Anda.</p>
-          </div>
-          <div className="flex flex-col md:flex-row gap-8 lg:gap-12">
-            <div className="w-full md:w-1/4">
-              <SettingsSidebar active={activeTab} />
-            </div>
-            <div className="w-full md:w-3/4">
-              <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-200">
+
+            {/* Konten Kanan */}
+            <div className="lg:col-span-9">
+              <div className="bg-white p-6 md:p-10 rounded-2xl shadow-lg border border-gray-200 min-h-[400px]">
                 {children}
               </div>
             </div>
           </div>
+          
+          {/* Integrasi Footer */}
+          <Footer />
         </main>
       </div>
     </>
   );
 }
 
+// Komponen Halaman Dinamis
 export default function DynamicSettingsPage() {
   const router = useRouter();
-  const { user, loading: authLoading, refreshUser } = useAuth();
+  const { user, loading: authLoading, logout, refreshUser } = useAuth();
   const { tab } = router.query;
 
   useEffect(() => {
@@ -75,6 +95,7 @@ export default function DynamicSettingsPage() {
   const renderContent = () => {
     switch (tab) {
       case 'profile':
+        // currentUser di-pass dengan nama yang benar
         return <EditProfileForm currentUser={user} onProfileUpdated={refreshUser} />;
       case 'account':
         return <AccountSettings />;
@@ -83,14 +104,16 @@ export default function DynamicSettingsPage() {
       case 'privacy':
         return <Privacy />;
       default:
-
-        router.replace('/settings/profile');
-        return null;
+        // Arahkan ke halaman profil jika tab tidak valid
+        if (typeof window !== 'undefined') {
+            router.replace('/settings/profile');
+        }
+        return <LoadingSpinner/>;
     }
   };
 
   return (
-    <SettingsPageLayout user={user} activeTab={tab}>
+    <SettingsPageLayout user={user} activeTab={tab} onLogout={logout}>
       {renderContent()}
     </SettingsPageLayout>
   );

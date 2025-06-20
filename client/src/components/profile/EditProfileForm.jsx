@@ -1,5 +1,5 @@
 // client/src/components/profile/EditProfileForm.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
@@ -17,6 +17,11 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
     defaultValues: {
       username: currentUser?.username || '',
       bio: currentUser?.bio || '',
+      // Menambahkan field lain sesuai desain, jika ada di data user
+      email: currentUser?.email || '',
+      location: currentUser?.location || 'Hamburg, Germany', // Contoh data
+      nationality: currentUser?.nationality || 'German', // Contoh data
+      date_of_birth: currentUser?.date_of_birth ? new Date(currentUser.date_of_birth).toISOString().split('T')[0] : '1988-10-06', // Contoh data
     }
   });
 
@@ -29,6 +34,7 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
       reset({
         username: currentUser.username || '',
         bio: currentUser.bio || '',
+        email: currentUser.email || '',
       });
       const currentAvatar = currentUser.avatar_url?.startsWith('/uploads/') 
         ? `${BASE_URL}${currentUser.avatar_url}` 
@@ -40,7 +46,7 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
+      if (file.size > 2 * 1024 * 1024) { // Batas 2MB
         toast.error("Ukuran file terlalu besar. Maksimal 2MB.");
         return;
       }
@@ -52,25 +58,27 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   };
 
   const onSubmit = async (data) => {
-    const usernameChanged = currentUser.username !== data.username.trim();
-    const bioChanged = (currentUser.bio || '') !== (data.bio || '');
-    
-    if (!usernameChanged && !bioChanged && !newAvatarFile) {
+    if (!isDirty && !newAvatarFile) {
       toast.info("Tidak ada perubahan untuk disimpan.");
       return;
     }
 
     setLoading(true);
+    const formData = new FormData();
+    
+    // Hanya tambahkan field yang berubah
+    if (data.username !== currentUser.username) formData.append('username', data.username.trim());
+    if (data.bio !== (currentUser.bio || '')) formData.append('bio', data.bio || '');
+    if (newAvatarFile) formData.append('avatar', newAvatarFile);
+    
+    // Implementasi untuk field lain jika backend mendukungnya
+    // if (data.location !== currentUser.location) formData.append('location', data.location);
+    // ... dan seterusnya
+
     try {
-      const formData = new FormData();
-      if (usernameChanged) formData.append('username', data.username.trim());
-      if (bioChanged) formData.append('bio', data.bio || '');
-      if (newAvatarFile) formData.append('avatar', newAvatarFile);
-
       const response = await api.put(`/users/${currentUser.id}`, formData);
-
       toast.success('Profil berhasil diperbarui!');
-      if (onProfileUpdated) onProfileUpdated(response.data.user);
+      if (onProfileUpdated) onProfileUpdated(response.data);
       router.push(`/users/${currentUser.id}`);
       
     } catch (error) {
@@ -81,45 +89,76 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-      {/* Bagian Judul Form */}
-      <div>
-        <h2 className="text-xl font-bold text-gray-900">Profil Publik</h2>
-        <p className="text-sm text-gray-500 mt-1">Informasi ini akan ditampilkan secara publik di halaman profil Anda.</p>
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <h2 className="text-2xl font-bold text-gray-900">Personal details</h2>
+      <p className="text-sm text-gray-500 mt-1 mb-8">Edit your personal details</p>
 
-      {/* Bagian Foto Profil */}
-      <div className="flex items-center gap-5">
-        <div className="relative w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
+      <div className="flex flex-col items-center justify-center mb-8">
+        <div className="relative w-24 h-24 rounded-full overflow-hidden mb-4">
           <Image src={avatarPreview} alt="Avatar Preview" layout="fill" objectFit="cover" key={avatarPreview} />
         </div>
-        <div>
-          <label htmlFor="avatar-upload" className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
-            Ubah
-          </label>
-          <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-        </div>
+        <label htmlFor="avatar-upload" className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 rounded-full text-sm transition-colors">
+          Change
+        </label>
+        <input id="avatar-upload" type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
       </div>
 
-      <div className="space-y-6 pt-6 border-t border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
-          <label htmlFor="username" className="text-sm font-semibold text-gray-700 md:col-span-1">Username</label>
-          <div className="md:col-span-2">
-            <Input id="username" {...register('username', { required: 'Username wajib diisi' })} error={errors.username} />
+      <div className="space-y-6 border-t border-gray-200 pt-6">
+        {/* Full Name / Username */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          <label htmlFor="username" className="text-sm font-semibold text-gray-600 md:col-span-1">Full name</label>
+          <div className="md:col-span-3">
+            <Input id="username" {...register('username', { required: 'Full name is required' })} error={errors.username} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-          <label htmlFor="bio" className="text-sm font-semibold text-gray-700 md:col-span-1 pt-2">Bio</label>
-          <div className="md:col-span-2">
-            <Textarea id="bio" {...register('bio')} rows={4} placeholder="Ceritakan sedikit tentang dirimu..." />
+        {/* Location */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          <label htmlFor="location" className="text-sm font-semibold text-gray-600 md:col-span-1">Location</label>
+          <div className="md:col-span-3">
+             <Input id="location" {...register('location')} placeholder="e.g., Hamburg, Germany" />
           </div>
+        </div>
+        
+        {/* Email */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          <label htmlFor="email" className="text-sm font-semibold text-gray-600 md:col-span-1">Email</label>
+          <div className="md:col-span-3">
+            <Input id="email" type="email" {...register('email', { 
+                required: 'Email is required',
+                pattern: { value: /^\S+@\S+$/i, message: "Invalid email address" }
+            })} error={errors.email} />
+          </div>
+        </div>
+
+        {/* Nationality */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <label htmlFor="nationality" className="text-sm font-semibold text-gray-600 md:col-span-1">Nationality</label>
+            <div className="md:col-span-3">
+                <Input id="nationality" {...register('nationality')} placeholder="e.g., German" />
+            </div>
+        </div>
+
+        {/* Date of birth */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+            <label htmlFor="date_of_birth" className="text-sm font-semibold text-gray-600 md:col-span-1">Date of birth</label>
+            <div className="md:col-span-3">
+                <Input id="date_of_birth" type="date" {...register('date_of_birth')} />
+            </div>
+        </div>
+
+         {/* Bio */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+            <label htmlFor="bio" className="text-sm font-semibold text-gray-600 md:col-span-1 pt-2">Bio</label>
+            <div className="md:col-span-3">
+                <Textarea id="bio" {...register('bio')} rows={4} placeholder="Tell us a little about yourself..." />
+            </div>
         </div>
       </div>
 
-      <div className="flex justify-end pt-6 mt-6 border-t border-gray-200">
+      <div className="flex justify-end pt-8 mt-8 border-t border-gray-200">
         <Button type="submit" disabled={loading || (!isDirty && !newAvatarFile)}>
-          {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+          {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
     </form>

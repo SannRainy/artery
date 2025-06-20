@@ -2,51 +2,63 @@
 import Link from 'next/link';
 import { 
   UserCircleIcon, 
+  CreditCardIcon, // Contoh Ikon untuk Payment
   ShieldCheckIcon, 
-  LockClosedIcon,
-  Cog8ToothIcon 
+  Cog8ToothIcon,
+  BellIcon,
+  UserPlusIcon // Contoh Ikon untuk Add Passengers
 } from '@heroicons/react/24/outline';
-
-
 
 export default function SettingsSidebar({ active = 'profile' }) {
   const navItems = [
     { 
       id: 'profile', 
-      label: 'Profil Publik', 
+      label: 'Personal details', 
       href: '/settings/profile', 
       icon: UserCircleIcon 
     },
     { 
-      id: 'account', 
-      label: 'Keamanan Akun', 
-      href: '/settings/account',
+      id: 'payment', 
+      label: 'Payment Information', 
+      href: '/settings/payment', // Tautan baru
+      icon: CreditCardIcon
+    },
+    { 
+      id: 'safety', 
+      label: 'Safety', 
+      href: '/settings/safety', // Tautan baru
       icon: ShieldCheckIcon 
     },
     { 
       id: 'preference',
-      label: 'Preferensi', 
+      label: 'Preferences', 
       href: '/settings/preference',
       icon: Cog8ToothIcon 
     },
     { 
-      id: 'privacy', 
-      label: 'Privasi & Data', 
-      href: '/settings/privacy',
-      icon: LockClosedIcon 
+      id: 'notifications', 
+      label: 'Notifications', 
+      href: '/settings/notifications', // Tautan baru
+      icon: BellIcon 
+    },
+     { 
+      id: 'passengers', 
+      label: 'Add other passengers', 
+      href: '/settings/passengers', // Tautan baru
+      icon: UserPlusIcon 
     },
   ];
 
   return (
-    <nav className="flex flex-col space-y-1 bg-white p-2 rounded-xl shadow-sm border border-gray-200">
+    <nav className="flex flex-col space-y-1">
       {navItems.map(item => (
         <Link 
           key={item.id}
           href={item.href}
           className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-150 ${
             active === item.id 
-              ? 'bg-gray-100 text-gray-900'
-              : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'
+              ? 'bg-blue-100 text-blue-700' // Gaya aktif yang lebih menonjol
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
           }`}
           aria-current={active === item.id ? 'page' : undefined}
         >

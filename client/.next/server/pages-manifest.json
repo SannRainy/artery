@@ -2,9 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/404": "pages/404.js",
-  "/settings/[tab]": "pages/settings/[tab].js",
   "/users/[id]": "pages/users/[id].js",
-  "/login": "pages/login.js",
+  "/settings/[tab]": "pages/settings/[tab].js",
   "/": "pages/index.js"
 }
