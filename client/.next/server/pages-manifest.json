@@ -3,5 +3,8 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/404": "pages/404.js",
-  "/settings/[tab]": "pages/settings/[tab].js"
+  "/settings/[tab]": "pages/settings/[tab].js",
+  "/users/[id]": "pages/users/[id].js",
+  "/login": "pages/login.js",
+  "/": "pages/index.js"
 }
