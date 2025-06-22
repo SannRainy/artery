@@ -13,15 +13,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'htt
 
 export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   const router = useRouter();
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm({
+  const { register, handleSubmit, reset, formState: { errors, isDirty, dirtyFields } } = useForm({
     defaultValues: {
       username: currentUser?.username || '',
       bio: currentUser?.bio || '',
-      // Menambahkan field lain sesuai desain, jika ada di data user
       email: currentUser?.email || '',
-      location: currentUser?.location || 'Hamburg, Germany', // Contoh data
-      nationality: currentUser?.nationality || 'German', // Contoh data
-      date_of_birth: currentUser?.date_of_birth ? new Date(currentUser.date_of_birth).toISOString().split('T')[0] : '1988-10-06', // Contoh data
+      location: currentUser?.location || '',
+      nationality: currentUser?.nationality || '',
+      date_of_birth: currentUser?.date_of_birth ? new Date(currentUser.date_of_birth).toISOString().split('T')[0] : '',
     }
   });
 
@@ -35,6 +34,9 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
         username: currentUser.username || '',
         bio: currentUser.bio || '',
         email: currentUser.email || '',
+        location: currentUser.location || '',
+        nationality: currentUser.nationality || '',
+        date_of_birth: currentUser.date_of_birth ? new Date(currentUser.date_of_birth).toISOString().split('T')[0] : '',
       });
       const currentAvatar = currentUser.avatar_url?.startsWith('/uploads/') 
         ? `${BASE_URL}${currentUser.avatar_url}` 
@@ -46,7 +48,7 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) { // Batas 2MB
+      if (file.size > 2 * 1024 * 1024) {
         toast.error("Ukuran file terlalu besar. Maksimal 2MB.");
         return;
       }
@@ -57,6 +59,7 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
     }
   };
 
+  // --- FUNGSI INI YANG DIPERBAIKI ---
   const onSubmit = async (data) => {
     if (!isDirty && !newAvatarFile) {
       toast.info("Tidak ada perubahan untuk disimpan.");
@@ -65,15 +68,15 @@ export default function EditProfileForm({ currentUser, onProfileUpdated }) {
 
     setLoading(true);
     const formData = new FormData();
-    
-    // Hanya tambahkan field yang berubah
-    if (data.username !== currentUser.username) formData.append('username', data.username.trim());
-    if (data.bio !== (currentUser.bio || '')) formData.append('bio', data.bio || '');
-    if (newAvatarFile) formData.append('avatar', newAvatarFile);
-    
-    // Implementasi untuk field lain jika backend mendukungnya
-    // if (data.location !== currentUser.location) formData.append('location', data.location);
-    // ... dan seterusnya
+
+    // Loop melalui field yang berubah dan tambahkan ke FormData
+    Object.keys(dirtyFields).forEach(fieldName => {
+        formData.append(fieldName, data[fieldName]);
+    });
+
+    if (newAvatarFile) {
+      formData.append('avatar', newAvatarFile);
+    }
 
     try {
       const response = await api.put(`/users/${currentUser.id}`, formData);

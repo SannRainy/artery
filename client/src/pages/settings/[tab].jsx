@@ -43,7 +43,7 @@ function SettingsPageLayout({ user, activeTab, onLogout, children }) {
               <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
                 <h3 className="font-bold text-lg mb-4 px-2">Profile settings</h3>
                 <nav className="flex flex-col space-y-1">
-                   <SettingsSidebar active={activeTab} />
+                    <SettingsSidebar active={activeTab} />
                 </nav>
                 <div className="border-t my-4"></div>
                 <button 

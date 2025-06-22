@@ -127,8 +127,9 @@ module.exports = function (db) {
     try {
       const user = await db('users')
         .where({ id: req.user.id })
-        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at')
+        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at', 'location', 'nationality', 'date_of_birth')
         .first();
+      
       if (!user) {
         return res.status(404).json({ error: { message: 'User not found', requestId, timestamp }});
       }
@@ -138,6 +139,7 @@ module.exports = function (db) {
       res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});
     }
   });
+
 
   router.get('/search', authenticate, async (req, res) => {
     const { q = '' } = req.query; // q adalah query pencarian
@@ -185,11 +187,7 @@ module.exports = function (db) {
 
         // Cek status follow
         const isFollowing = await db('follows').where({ follower_id: currentUserId, following_id: id }).first();
-        
-        // === PERUBAHAN UTAMA DI SINI ===
-        // Cek apakah user ini mem-follow kita balik
         const isFollowingYou = await db('follows').where({ follower_id: id, following_id: currentUserId }).first();
-        // ==============================
 
         res.json({
             id: user.id,
@@ -197,11 +195,14 @@ module.exports = function (db) {
             avatar_url: user.avatar_url,
             bio: user.bio,
             created_at: user.created_at,
+            location: user.location,
+            nationality: user.nationality,
+            date_of_birth: user.date_of_birth,
             pinsCount: parseInt(pinsCount.count, 10),
             followingCount: parseInt(followingCount.count, 10),
             followersCount: parseInt(followersCount.count, 10),
             is_following: !!isFollowing,
-            is_following_you: !!isFollowingYou // <-- Tambahkan field baru di respons
+            is_following_you: !!isFollowingYou
         });
     } catch (err) {
         console.error(`[${requestId}] [${timestamp}] Error fetching user profile:`, err.message);
@@ -210,8 +211,9 @@ module.exports = function (db) {
 });
 
   // ✅ UPDATE USER PROFILE
-  // HANYA SATU DEFINISI router.put('/:id', ...)
+
   router.put('/:id', authenticate, (req, res, next) => {
+
     uploadAvatar(req, res, function (err) {
       const requestId = req.requestId;
       const timestamp = new Date().toISOString();
@@ -227,31 +229,24 @@ module.exports = function (db) {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
     try {
-      if (parseInt(req.params.id, 10) !== req.user.id) { // Pastikan tipe data cocok saat membandingkan
-        return res.status(403).json({ error: { message: 'Unauthorized to update this profile', requestId, timestamp }});
+      if (parseInt(req.params.id, 10) !== req.user.id) {
+        return res.status(403).json({ error: { message: 'Unauthorized' }});
       }
 
-      const { username, bio } = req.body;
+      const { username, bio, location, nationality, date_of_birth, email } = req.body;
       const updates = { updated_at: db.fn.now() };
 
-      if (username !== undefined && username.trim() !== '') {
-        if (username.trim() !== req.user.username) {
-            const existingUser = await db('users').where({ username: username.trim() }).whereNot({ id: req.user.id }).first();
-            if (existingUser) {
-                return res.status(400).json({ error: { message: 'Username already taken.', requestId, timestamp } });
-            }
-        }
-        updates.username = username.trim();
+      if (username !== undefined) updates.username = username.trim();
+      if (email !== undefined) updates.email = email.trim();
+      if (bio !== undefined) updates.bio = bio;
+      if (location !== undefined) updates.location = location;
+      if (nationality !== undefined) updates.nationality = nationality;
+      if (date_of_birth !== undefined) {
+        updates.date_of_birth = date_of_birth || null;
       }
-      
-      if (bio !== undefined) {
-        updates.bio = bio; // Bisa string kosong
-      }
-
       if (req.file) {
         updates.avatar_url = `/uploads/avatars/${req.file.filename}`;
         const oldUserData = await db('users').where({ id: req.user.id }).select('avatar_url').first();
-        // Ganti perbandingan dengan path default avatar lokal yang baru
         if (oldUserData && oldUserData.avatar_url && oldUserData.avatar_url !== '/img/default-avatar.png' && oldUserData.avatar_url.startsWith('/uploads/avatars/')) {
             const oldAvatarPath = path.join(__dirname, '..', '..', 'public', oldUserData.avatar_url);
             fs.unlink(oldAvatarPath, (err) => {
@@ -262,9 +257,8 @@ module.exports = function (db) {
         }
       }
       
-      // Hanya update jika ada field yang benar-benar diubah (selain updated_at) atau ada file baru
       const fieldsToUpdate = { ...updates };
-      delete fieldsToUpdate.updated_at; // Hapus updated_at untuk pengecekan
+      delete fieldsToUpdate.updated_at;
       
       if (Object.keys(fieldsToUpdate).length > 0 || req.file) {
           await db('users').where({ id: req.user.id }).update(updates);
@@ -272,7 +266,7 @@ module.exports = function (db) {
 
       const updatedUser = await db('users')
         .where({ id: req.user.id })
-        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at')
+        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at', 'location', 'nationality', 'date_of_birth') // <-- Tambahkan field baru di sini juga
         .first();
       res.json(updatedUser);
     } catch (err) {
@@ -285,6 +279,7 @@ module.exports = function (db) {
       res.status(500).json({ error: { message: 'Internal server error while updating profile', details: err.message, requestId, timestamp }});
     }
   });
+
 
   router.get('/:id/boards', async (req, res) => {
     const requestId = req.requestId;
