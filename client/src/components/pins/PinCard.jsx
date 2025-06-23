@@ -1,7 +1,7 @@
 // client/src/components/pins/PinCard.jsx
 import { useState, useEffect, forwardRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContexts';
-import { likePin } from '../../services/pins';
+import { toggleLikePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 import { useInView } from '../../hooks/useInView';
 import { getImageUrl } from '../../utils/helpers';
@@ -43,7 +43,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
     setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
 
     try {
-      const response = await likePin(pin.id);
+      const response = await toggleLikePin(pin.id);
       if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
         setIsLiked(response.liked);
         setLikeCount(response.new_like_count);

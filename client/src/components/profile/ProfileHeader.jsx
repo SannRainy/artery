@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { FiSettings, FiHome } from 'react-icons/fi';
 import Link from 'next/link';
 import { useAuth } from '../../contexts/AuthContexts'; 
-import { followUser } from '../../lib/api/profile'; 
+import { toggleFollowUser } from '../../lib/api/profile'; 
 import { toast } from 'react-toastify'; 
 import { getImageUrl } from '../../utils/helpers';
 
@@ -12,37 +12,40 @@ import { getImageUrl } from '../../utils/helpers';
 const ProfileHeader = ({ user, isCurrentUser, onUpdateUser }) => {
   const { user: currentUser } = useAuth();
 
+  if (!userProfile) return null;
 
-  const handleFollow = async () => {
-    if (!currentUser) {
-      toast.info("Silakan login untuk mengikuti pengguna.");
-      return;
-    }
+  const isFollowing = userProfile.is_following;
+  const isCurrentUser = currentUser?.id === userProfile.id;
 
+ const handleToggleFollow = async () => {
+    if (!currentUser) return; 
 
-    const originalUser = { ...user };
+    const originalProfile = { ...userProfile };
 
 
     const optimisticUser = {
-      ...user,
-      is_following: !user.is_following,
-
-      followers_count: user.is_following 
-        ? user.followers_count - 1 
-        : user.followers_count + 1,
+      ...userProfile,
+      is_following: !isfollowing,
+      follower_count: isfollowing 
+        ? userProfile.followers_count - 1 
+        : userProfile.followers_count + 1,
     };
-
-
-    onUpdateUser(optimisticUser);
+    setUserProfile(optimisticUser);
 
     try {
-      // Panggil API
-      await followUser(user.id);
-    } catch (error) {
-      console.error("Gagal follow/unfollow:", error);
-      toast.error("Terjadi kesalahan saat mengikuti pengguna.");
 
-      onUpdateUser(originalUser);
+      const data = await toggleFollowUser(userProfile.id);
+      
+      setUserProfile(prev => ({
+        ...prev,
+        is_following: data.following,
+        follower_count: data.follower_count,
+      }));
+
+    } catch (error) {
+      console.error('Failed to toggle follow:', error);
+      // Rollback ke state semula jika API call gagal
+      setUserProfile(originalProfile);
     }
   };
 

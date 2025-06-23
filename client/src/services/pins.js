@@ -75,30 +75,16 @@ export const getPinById = async (id) => {
   }
 };
 
-export const likePin = async (pinId) => {
+export const toggleLikePin = async (pinId) => {
   try {
+
     const response = await api.post(`/pins/${pinId}/like`, null, {
       headers: getAuthHeaders(),
     });
-    
     return response.data;
   } catch (error) {
-    console.error(`Failed to like pin with ID ${pinId}:`, error.response?.data || error.message);
-    throw new Error(error.response?.data?.error?.message || 'Failed to like pin.');
-  }
-};
-
-export const unlikePin = async (pinId) => {
-  try {
-
-    const response = await api.post(`/pins/${pinId}/like`, null, { 
-      headers: getAuthHeaders(),
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error(`Failed to unlike pin with ID ${pinId}:`, error.response?.data || error.message);
-    throw new Error(error.response?.data?.error?.message || 'Failed to unlike pin.');
+    console.error(`Failed to toggle like for pin ${pinId}:`, error.response?.data || error.message);
+    throw new Error(error.response?.data?.error?.message || 'Failed to update like status.');
   }
 };
 

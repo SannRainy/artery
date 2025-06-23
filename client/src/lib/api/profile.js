@@ -10,6 +10,17 @@ export const getUserProfile = async (userId) => { //
   }
 };
 
+export const toggleFollowUser = async (userId) => {
+  try {
+    const response = await api.post(`/users/${userId}/follow`, null, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    throw handleAxiosError(error, 'Failed to update follow status');
+  }
+};
+
 export const getUserPins = async (userId) => { //
   try {
     const response = await api.get(`/users/${userId}/pins`); //
@@ -34,18 +45,5 @@ export const getUserActivity = async (userId) => { //
     return response.data; //
   } catch (error) {
     throw handleApiError(error); //
-  }
-};
-
-export const followUser = async (userId) => {
-  if (!userId) {
-    throw new Error("User ID is required to follow a user.");
-  }
-  try {
-    const { data } = await api.post(`/users/${userId}/follow`);
-    return data;
-  } catch (error) {
-    console.error(`API Error following user ${userId}:`, error.response?.data || error.message);
-    throw handleApiError(error);
   }
 };
