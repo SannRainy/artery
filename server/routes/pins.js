@@ -175,7 +175,7 @@ module.exports = function (db) {
       const insertData = {
           title: title.trim(),
           description: description ? description.trim() : null,
-          image_url: publicUrl, // <-- Simpan URL dari Supabase
+          image_url: publicUrl,
           user_id: userId,
           created_at: new Date(),
           updated_at: new Date()

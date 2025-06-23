@@ -28,7 +28,7 @@ export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
       formData.append('category', data.category);
 
       if (data.image && data.image[0]) {
-        formData.append('image_url', data.image[0]);
+        formData.append('image', data.image[0]);
       } else {
         throw new Error('Gambar pin wajib diunggah.');
       }
