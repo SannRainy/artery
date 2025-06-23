@@ -3,6 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
-  "/users/[id]": "pages/users/[id].js",
-  "/settings/[tab]": "pages/settings/[tab].js"
+  "/settings/[tab]": "pages/settings/[tab].js",
+  "/login": "pages/login.js",
+  "/users/[id]": "pages/users/[id].js"
 }
