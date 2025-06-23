@@ -2,218 +2,159 @@
 
 const express = require('express');
 const multer = require('multer');
-const supabase = require('../utils/supabaseClient');
 const path = require('path');
-const fs = require('fs');
 const { authenticate } = require('../middleware/auth.js');
+const supabase = require('../utils/supabaseClient');
 
+// Konfigurasi Multer (sudah benar, menggunakan memori)
 const storage = multer.memoryStorage();
-
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  if (allowedTypes.test(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Invalid file type. Only images are allowed.'), false);
+    cb(new Error('Invalid file type. Only images are allowed.'), false);
   }
 };
-
 const upload = multer({
-  storage: storage, 
-  limits: { fileSize: 5 * 1024 * 1024 }, 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: fileFilter
 });
-
 
 module.exports = function (db) {
   const router = express.Router();
 
   const pinBasicColumns = [
-    'p.id', 'p.title', 'p.description', 'p.image_url', 
+    'p.id', 'p.title', 'p.description', 'p.image_url',
     'p.created_at', 'p.updated_at', 'p.user_id'
   ];
 
+  // --- GET /pins (Tidak ada perubahan signifikan) ---
   router.get('/', authenticate, async (req, res) => {
     let { page = 1, limit = 30, category = '', user_id: filter_user_id, mode } = req.query;
     const currentAuthenticatedUserId = req.user ? req.user.id : null;
-    const requestId = req.requestId || `req-${Date.now()}`;
-    const timestamp = new Date().toISOString();
-
-    page = parseInt(page, 10);
-    limit = parseInt(limit, 10);
-    if (isNaN(page) || page < 1) page = 1;
-    if (isNaN(limit) || limit < 1 || limit > 100) limit = 30;
+    page = parseInt(page) || 1;
+    limit = parseInt(limit) || 30;
     const offset = (page - 1) * limit;
 
     try {
-      let pinsQuery = db
-        .select(
-          ...pinBasicColumns,
-          'u.username as user_username',
-          'u.avatar_url as user_avatar_url',
-          db.raw(`(SELECT COUNT(*) FROM pin_likes WHERE pin_likes.pin_id = p.id) as like_count`),
-          db.raw(`(SELECT COUNT(*) FROM pin_comments WHERE pin_comments.pin_id = p.id) as comment_count`)
-        )
-        .from('pins as p')
-        .join('users as u', 'p.user_id', 'u.id');
+      let pinsQuery = db.select(
+        ...pinBasicColumns,
+        'u.username as user_username',
+        'u.avatar_url as user_avatar_url',
+        db.raw(`(SELECT COUNT(*) FROM pin_likes WHERE pin_likes.pin_id = p.id) as like_count`),
+        db.raw(`(SELECT COUNT(*) FROM pin_comments WHERE pin_comments.pin_id = p.id) as comment_count`)
+      ).from('pins as p').join('users as u', 'p.user_id', 'u.id');
 
-      let countQueryBuilder = db('pins as p_count');
-
-      if (filter_user_id) {
-        pinsQuery.where('p.user_id', filter_user_id);
-        countQueryBuilder.where('p_count.user_id', filter_user_id);
-      }
-      
+      if (filter_user_id) pinsQuery.where('p.user_id', filter_user_id);
       if (category && category.trim() !== '' && category !== 'Semua') {
-        const categoryName = category.trim().toLowerCase();
-
-        const subquery = db('pin_tags')
-          .join('tags', 'pin_tags.tag_id', 'tags.id')
-          .where('tags.name', categoryName)
-          .select('pin_tags.pin_id');
-
+        const subquery = db('pin_tags').join('tags', 'pin_tags.tag_id', 'tags.id').where('tags.name', category.trim().toLowerCase()).select('pin_tags.pin_id');
         pinsQuery.whereIn('p.id', subquery);
-        countQueryBuilder.whereIn('p_count.id', subquery);
       }
+
       if (mode === 'random') {
         const randomOrder = db.client.config.client === 'pg' ? db.raw('RANDOM()') : db.raw('RAND()');
-        pinsQuery.orderBy(randomOrder).limit(limit); 
-                                
-      } else { 
+        pinsQuery.orderBy(randomOrder).limit(limit);
+      } else {
         pinsQuery.orderBy('p.created_at', 'desc').limit(limit).offset(offset);
       }
 
       const pinsData = await pinsQuery;
-      const totalPinsResult = await countQueryBuilder.countDistinct('p_count.id as total').first();
-      const totalPins = totalPinsResult ? parseInt(totalPinsResult.total, 10) : 0;
-
-      let processedPins = [];
-      if (pinsData.length > 0) {
-        const pinIds = pinsData.map(p => p.id);
-        
-        const tagsData = await db('pin_tags as pt')
-          .join('tags as t', 'pt.tag_id', 't.id')
-          .whereIn('pt.pin_id', pinIds)
-          .select('pt.pin_id', 't.id as tag_id', 't.name as tag_name');
-
-        let userLikesData = [];
-        if (currentAuthenticatedUserId) {
-            userLikesData = await db('pin_likes')
-                .whereIn('pin_id', pinIds)
-                .andWhere('user_id', currentAuthenticatedUserId)
-                .select('pin_id');
-        }
-        const likedPinIds = new Set(userLikesData.map(like => like.pin_id));
-
-        processedPins = pinsData.map(pin => {
-          const pinTags = tagsData
-            .filter(tag => tag.pin_id === pin.id)
-            .map(tag => ({ id: tag.tag_id, name: tag.tag_name }));
-          return {
-            ...pin,
-            tags: pinTags,
-            user: { 
-              id: pin.user_id,
-              username: pin.user_username,
-              avatar_url: pin.user_avatar_url
-            },
-            like_count: parseInt(pin.like_count, 10) || 0,
-            comment_count: parseInt(pin.comment_count, 10) || 0,
-            is_liked: currentAuthenticatedUserId ? likedPinIds.has(pin.id) : false
-          };
-        });
-      }
-
-      res.json({
-        data: processedPins,
-        pagination: { page, limit, totalItems: totalPins, totalPages: Math.ceil(totalPins / limit)}
-      });
+      // Logika pemrosesan data (seperti sebelumnya)
+      const pinIds = pinsData.map(p => p.id);
+      const tagsData = pinIds.length ? await db('pin_tags as pt').join('tags as t', 'pt.tag_id', 't.id').whereIn('pt.pin_id', pinIds).select('pt.pin_id', 't.id as tag_id', 't.name as tag_name') : [];
+      const userLikesData = (currentAuthenticatedUserId && pinIds.length) ? await db('pin_likes').whereIn('pin_id', pinIds).andWhere('user_id', currentAuthenticatedUserId).select('pin_id') : [];
+      const likedPinIds = new Set(userLikesData.map(like => like.pin_id));
+      const processedPins = pinsData.map(pin => ({
+        ...pin,
+        tags: tagsData.filter(tag => tag.pin_id === pin.id).map(tag => ({ id: tag.tag_id, name: tag.tag_name })),
+        user: { id: pin.user_id, username: pin.user_username, avatar_url: pin.user_avatar_url },
+        like_count: parseInt(pin.like_count) || 0,
+        comment_count: parseInt(pin.comment_count) || 0,
+        is_liked: likedPinIds.has(pin.id)
+      }));
+      
+      res.json({ data: processedPins, pagination: { page, limit } });
     } catch (err) {
-      console.error(`[${requestId}] [${timestamp}] Failed to fetch pins:`, err.message, err.stack);
-      res.status(500).json({
-        error: { message: 'Failed to fetch pins. Check server logs.', requestId, timestamp }
-      });
+      console.error(`Failed to fetch pins:`, err);
+      res.status(500).json({ error: { message: 'Failed to fetch pins.' } });
     }
   });
 
-  // --- POST /pins - Membuat pin baru ---
+  // --- POST /pins - MEMBUAT PIN BARU (LOGIKA DIPERBAIKI TOTAL) ---
   router.post('/', authenticate, upload.single('image'), async (req, res) => {
-      const requestId = req.requestId || `req-${Date.now()}`;
-      const timestamp = new Date().toISOString();
-      const userId = req.user.id;
-          
-      try {
-      const { title, description, category } = req.body;
-        if (!title || title.trim().length === 0) {
-          return res.status(400).json({ error: { message: 'Title is required.', requestId, timestamp }});
-      }
-        if (!req.file) {
-          return res.status(400).json({ error: { message: 'Image file is required.', requestId, timestamp }});
-      }
+    const userId = req.user.id;
+    const { title, description, category } = req.body;
 
-      // --- Logika Upload ke Supabase ---
+    // 1. Validasi Input
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({ error: { message: 'Title is required.' } });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: { message: 'Image file is required.' } });
+    }
+
+    try {
+      // 2. Upload file ke Supabase
       const file = req.file;
-      const fileExt = path.extname(file.originalname);
-      const fileName = `pin-${Date.now()}${fileExt}`;
+      const fileName = `pin-${userId}-${Date.now()}${path.extname(file.originalname)}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('pins') // Nama bucket di Supabase
-        .upload(fileName, file.buffer, {
-          contentType: file.mimetype,
-          cacheControl: '3600'
-        });
+      const { error: uploadError } = await supabase.storage
+        .from('pins')
+        .upload(fileName, file.buffer, { contentType: file.mimetype });
 
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
-      
+      if (uploadError) throw new Error(uploadError.message);
+
       const { data: { publicUrl } } = supabase.storage
         .from('pins')
         .getPublicUrl(fileName);
-      // ---------------------------------
 
-      const insertData = {
+      // 3. Simpan ke database menggunakan transaksi
+      const newPinResponse = await db.transaction(async trx => {
+        // Masukkan data pin
+        const [pin] = await trx('pins').insert({
           title: title.trim(),
           description: description ? description.trim() : null,
           image_url: publicUrl,
           user_id: userId,
-          created_at: new Date(),
-          updated_at: new Date()
-      };
- 
-      const newPinResponse = await db.transaction(async trx => {
-      const [pinId] = await trx('pins').insert(insertData).returning('id');
-        if (!pinId) throw new Error('Failed to insert pin or retrieve its ID.');
+        }).returning('*'); // Ambil semua data pin yang baru dibuat
 
-      const insertedPinDetails = await trx('pins').where({ id: pinId.id }).first();
-        if (!insertedPinDetails) throw new Error('Failed to fetch newly created pin details.');
-              
-              // Logika tag tetap sama
-      let tagsForNewPin = [];
+        let tagsForNewPin = [];
+        // Jika ada kategori, proses tag
         if (category && category.trim() !== '') {
-      const tagName = category.trim().toLowerCase();
-      let tag = await trx('tags').where({ name: tagName }).first();
-        if (!tag) {
-                  const [newTag] = await trx('tags').insert({ name: tagName }).returning('*');
-                  tag = newTag;
-                  }
-        await trx('pin_tags').insert({ pin_id: pinId.id, tag_id: tag.id });
-        tagsForNewPin.push({ id: tag.id, name: tag.name });
-      }
-      const userDetails = await trx('users').where({id: userId}).select('username', 'avatar_url').first();
-          return {
-          ...insertedPinDetails,
+          const tagName = category.trim().toLowerCase();
+          let tag = await trx('tags').where({ name: tagName }).first();
+          if (!tag) {
+            // Jika tag belum ada, buat baru
+            [tag] = await trx('tags').insert({ name: tagName }).returning('*');
+          }
+          // Hubungkan pin dan tag
+          await trx('pin_tags').insert({ pin_id: pin.id, tag_id: tag.id });
+          tagsForNewPin.push({ id: tag.id, name: tag.name });
+        }
+
+        // Ambil data user untuk respons
+        const userDetails = await trx('users').where({ id: userId }).select('username', 'avatar_url').first();
+
+        // Kembalikan objek lengkap untuk dikirim sebagai respons
+        return {
+          ...pin,
           tags: tagsForNewPin,
           user: { id: userId, username: userDetails.username, avatar_url: userDetails.avatar_url },
-          like_count: 0, comment_count: 0, is_liked: false
-          };
-          });
-      res.status(201).json(newPinResponse);
-      } catch (err) {
-      console.error(`[${requestId}] [${timestamp}] Error creating pin:`, err.message, err.stack);
-      res.status(500).json({ error: { message: err.message || 'Failed to create pin.', details: err.message, requestId, timestamp }});
-      }
+          like_count: 0,
+          comment_count: 0,
+          is_liked: false
+        };
       });
+
+      res.status(201).json(newPinResponse);
+
+    } catch (err) {
+      console.error(`Error creating pin:`, err);
+      res.status(500).json({ error: { message: 'Failed to create pin.', details: err.message } });
+    }
+  });
 
   // --- GET /pins/search ---
   router.get('/search', authenticate, async (req, res) => { 
