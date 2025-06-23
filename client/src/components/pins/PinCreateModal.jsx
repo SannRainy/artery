@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { createPin } from '../../services/pins';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { getImageUrl } from '../../utils/helpers';
 
 export default function PinCreateModal({ isOpen, onClose, onPinCreated }) {
   const { register, handleSubmit, reset, formState: { errors } } = useForm();

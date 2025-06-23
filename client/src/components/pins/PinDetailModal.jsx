@@ -11,16 +11,6 @@ import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify'; 
 
-const getImageUrl = (url) => {
-  if (!url) return '/img/default-pin.png';
-  if (url.startsWith('/uploads/')) {
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-    return `${BASE_URL}${url}`;
-  }
-  return url;
-};
-
-
 export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   const { user } = useAuth();
   

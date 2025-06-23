@@ -7,15 +7,6 @@ import { useInView } from '../../hooks/useInView';
 import { getImageUrl } from '../../utils/helpers';
 import Image from 'next/image';
 
-const getImageUrl = (url, defaultImg = '/img/default-pin.png') => {
-  if (!url) return defaultImg;
-  if (url.startsWith('/uploads/')) {
-    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
-    return `${BASE_URL}${url}`;
-  }
-  return url;
-};
-
 const PinCard = forwardRef(({ pin, index }, ref) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
