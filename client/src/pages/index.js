@@ -10,51 +10,52 @@ import { getPins, searchPins } from '../services/pins';
 import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
-import SearchHero from '../components/layout/SearchHero'; 
+import SearchHero from '../components/layout/SearchHero';
 
 export default function Home() {
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   const [pins, setPins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const [activeCategory, setActiveCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
   const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
 
-  // --- State untuk Modal ---
-  const [selectedPinId, setSelectedPinId] = useState(null);
+  const [selectedPin, setSelectedPin] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  
-  // Ambil pinId dari router query saat komponen pertama kali mount
+
   useEffect(() => {
     if (router.isReady && router.query.pinId) {
-      setSelectedPinId(parseInt(router.query.pinId, 10));
+      const pinId = parseInt(router.query.pinId, 10);
+      const pinToOpen = pins.find(p => p.id === pinId) || { id: pinId };
+      setSelectedPin(pinToOpen);
+    } else if (router.isReady && !router.query.pinId) {
+      setSelectedPin(null);
     }
-  }, [router.isReady, router.query.pinId]);
+  }, [router.isReady, router.query.pinId, pins]);
 
-
-  const fetchAndSetPins = useCallback(async (pageNum, query, category, isAppending) => {
-    if (authLoading || !isAuthenticated) {
-      setPins([]); setLoading(false); setHasMore(false);
-      return;
-    }
-    
+  const fetchAndSetPins = useCallback(async (pageNum, query, category) => {
     setLoading(true);
     setError(null);
+
+    const isAppending = pageNum > 1 && !query && category === activeCategory;
+
     try {
       const categoryToSend = category === 'Semua' ? '' : category;
-      const response = query ? await searchPins(query, pageNum) : await getPins({ page: pageNum, category: categoryToSend });
+      const response = query
+        ? await searchPins(query, pageNum)
+        : await getPins({ page: pageNum, category: categoryToSend });
+
       const newPins = response?.data || [];
       const pagination = response?.pagination;
 
-      // --- Logika Anti-Duplikat ---
       if (isAppending) {
         setPins(prev => {
           const existingIds = new Set(prev.map(p => p.id));
@@ -65,11 +66,7 @@ export default function Home() {
         setPins(newPins);
       }
 
-      if (pagination) {
-        setHasMore(pageNum < pagination.totalPages);
-      } else {
-        setHasMore(newPins.length > 0);
-      }
+      setHasMore(pagination ? pageNum < pagination.totalPages : newPins.length > 0);
     } catch (err) {
       console.error('Failed to fetch pins:', err);
       setError('Gagal memuat pin.');
@@ -77,94 +74,67 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, authLoading]);
-  
-  // --- Trigger pengambilan data ---
-  useEffect(() => {
-    fetchAndSetPins(page, searchQuery, activeCategory, page > 1);
-  }, [page, searchQuery, activeCategory, fetchAndSetPins]);
+  }, [activeCategory]);
 
+  useEffect(() => {
+    fetchAndSetPins(page, searchQuery, activeCategory);
+  }, [page, searchQuery, activeCategory, fetchAndSetPins]);
 
   const handleCategoryClick = (category) => {
     if (activeCategory !== category) {
       setSearchQuery('');
+      setPins([]);
       setPage(1);
+      setHasMore(true);
       setActiveCategory(category);
     }
   };
   
-  const debouncedSearch = useCallback(debounce(query => {
+  const debouncedSearch = useCallback(debounce((query) => {
     setActiveCategory('Semua');
+    setPins([]);
     setPage(1);
+    setHasMore(true);
     setSearchQuery(query);
   }, 500), []);
-  
-  const handleSuggestionClick = (query) => {
-    debouncedSearch.cancel();
-    const searchInput = document.querySelector('input[placeholder="Apa yang sedang Anda cari?"]');
-    if (searchInput) searchInput.value = query;
-    setActiveCategory('Semua');
-    setPage(1);
-    setSearchQuery(query);
-  };
 
-  const handleResetSearch = () => {
-    const searchInput = document.querySelector('input[placeholder="Apa yang sedang Anda cari?"]');
-    if (searchInput) searchInput.value = '';
-    setSearchQuery('');
-  };
-  
   const observer = useRef();
   const lastPinRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore && !searchQuery) {
         setPage(prevPage => prevPage + 1);
       }
     });
     if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
+  }, [loading, hasMore, searchQuery]);
 
-
-  const handleOpenPinDetail = (pinId) => {
-    setSelectedPinId(pinId);
-    router.push(`/?pinId=${pinId}`, `/pins/${pinId}`, { shallow: true });
+  const handleOpenPinDetail = (pin) => {
+    setSelectedPin(pin);
+    router.push(`/?pinId=${pin.id}`, `/pins/${pin.id}`, { shallow: true });
   };
   
   const handleClosePinDetail = () => {
-    setSelectedPinId(null);
+    setSelectedPin(null);
     router.push('/', undefined, { shallow: true });
   };
 
   const handlePinCreated = (newPin) => {
-    setPins(prev => {
-        const pinExists = prev.some(p => p.id === newPin.id);
-        if (!pinExists) {
-            return [newPin, ...prev];
-        }
-        return prev;
-    });
-    setActiveCategory('Semua');
-    setSearchQuery('');
-    setPage(1);
+    setPins(prev => [newPin, ...prev]);
   };
-  
+
   const breakpointColumnsObj = { default: 5, 1280: 4, 1024: 3, 768: 2, 640: 2 };
 
-  if (authLoading && !isAuthenticated) {
+  if (authLoading) {
     return <div className="flex justify-center items-center h-screen bg-gray-50"><LoadingSpinner /></div>;
   }
-
+  
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onCreateClick={() => setIsCreateModalOpen(true)} />
-
+      <Header onCreateClick={() => user ? setIsCreateModalOpen(true) : router.push('/login')} />
       <main className="container mx-auto px-4 pt-24 pb-8">
-        <SearchHero 
-          onSearch={debouncedSearch}
-          onSuggestionClick={handleSuggestionClick}
-        />
+        <SearchHero onSearch={debouncedSearch} onSuggestionClick={handleCategoryClick} />
         
         <div className="mb-8">
           <div className="flex overflow-x-auto pb-2 scrollbar-hide space-x-2">
@@ -181,7 +151,7 @@ export default function Home() {
         {(loading && pins.length === 0) ? (
           <div className="text-center py-10"><LoadingSpinner /></div>
         ) : error ? (
-            <div className="text-center py-10 text-red-500">{error}</div>
+          <div className="text-center py-10 text-red-500">{error}</div>
         ) : pins.length === 0 ? (
           <div className="text-center py-10 text-gray-500">Tidak ada pin untuk ditampilkan.</div>
         ) : (
@@ -191,7 +161,7 @@ export default function Home() {
             columnClassName="masonry-grid_column"
           >
             {pins.map((pin, index) => (
-              <div key={pin.id} onClick={() => handleOpenPinDetail(pin.id)}>
+              <div key={pin.id} onClick={() => handleOpenPinDetail(pin)}>
                 <PinCard 
                   pin={pin} 
                   index={index} 
@@ -211,10 +181,10 @@ export default function Home() {
         )}
       </main>
 
-      {selectedPinId && (
+      {selectedPin && (
         <PinDetailModal 
-          pinId={selectedPinId}
-          isOpen={!!selectedPinId} 
+          pin={selectedPin}
+          isOpen={!!selectedPin} 
           onClose={handleClosePinDetail} 
         />
       )}
