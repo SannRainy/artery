@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContexts';
 import { likePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 import { useInView } from '../../hooks/useInView';
+import { getImageUrl } from '../../utils/helpers';
 import Image from 'next/image';
 
 const getImageUrl = (url, defaultImg = '/img/default-pin.png') => {

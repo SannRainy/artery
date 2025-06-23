@@ -9,16 +9,14 @@ const { authenticate } = require('../middleware/auth');
 const supabase = require('../utils/supabaseClient');
 
 const avatarStorage = multer.memoryStorage();
-
 const avatarFileFilter = (req, file, cb) => {
-   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (allowedTypes.includes(file.mimetype)) {
-     cb(null, true);
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
   } else {
-     cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Invalid file type for avatar. Only images are allowed.'), false);
-   }
+    cb(new Error('Invalid file type for avatar.'), false);
+  }
 };
-
 const uploadAvatar = multer({
    storage: avatarStorage, // <-- Menggunakan memoryStorage
    limits: { fileSize: 2 * 1024 * 1024 }, // Max 2MB untuk avatar

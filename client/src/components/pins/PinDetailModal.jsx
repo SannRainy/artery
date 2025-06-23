@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
 import { getPinById, addComment, likePin } from '../../services/pins';
 import { followUser } from '../../lib/api/profile';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, getImageUrl } from '../../utils/helpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';

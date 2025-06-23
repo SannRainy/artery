@@ -5,6 +5,18 @@ export const formatDate = (dateString, locale = 'id-ID') => {
   return new Date(dateString).toLocaleDateString(locale, options)
 }
 
+export const getImageUrl = (url, defaultImg = '/img/default-pin.png') => {
+  if (!url) {
+    return defaultImg;
+  }
+
+  if (url.startsWith('http')) {
+    return url;
+  }
+
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+  return `${BASE_URL}${url}`;
+};
 
 export const truncateText = (text = '', maxLength = 100) => {
   if (typeof text !== 'string') return ''

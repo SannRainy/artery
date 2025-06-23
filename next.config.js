@@ -1,6 +1,20 @@
 module.exports = {
   reactStrictMode: true,
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+
+        hostname: 'weuskrczzjbswnpsgbmp', 
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+
+      {
+        protocol: 'https',
+        hostname: '*.up.railway.app',
+      }
+    ],
     domains: ['localhost', 'via.placeholder.com'],
   },
   async rewrites() {
