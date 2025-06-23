@@ -1,41 +1,36 @@
-// client/src/components/profile/ProfileHeader.jsx
-
+import React from 'react';
 import Image from 'next/image';
-import { FiSettings, FiHome } from 'react-icons/fi';
-import Link from 'next/link';
-import { useAuth } from '../../contexts/AuthContexts'; 
-import { toggleFollowUser } from '../../lib/api/profile'; 
-import { toast } from 'react-toastify'; 
+import { useAuth } from '../../contexts/AuthContexts';
+import Button from '../ui/Button';
 import { getImageUrl } from '../../utils/helpers';
+import { toggleFollowUser } from '../../lib/api/profile';
 
-
-const ProfileHeader = ({ user, isCurrentUser, onUpdateUser }) => {
+const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
   const { user: currentUser } = useAuth();
 
   if (!userProfile) return null;
 
-  const isFollowing = userProfile.is_following;
   const isCurrentUser = currentUser?.id === userProfile.id;
+  const isFollowing = userProfile.is_following;
 
- const handleToggleFollow = async () => {
-    if (!currentUser) return; 
+  const handleToggleFollow = async () => {
+    if (!currentUser) return;
 
     const originalProfile = { ...userProfile };
 
-
     const optimisticUser = {
       ...userProfile,
-      is_following: !isfollowing,
-      follower_count: isfollowing 
-        ? userProfile.followers_count - 1 
-        : userProfile.followers_count + 1,
+      is_following: !isFollowing,
+      follower_count: isFollowing
+        ? userProfile.follower_count - 1
+        : userProfile.follower_count + 1,
     };
     setUserProfile(optimisticUser);
 
     try {
 
       const data = await toggleFollowUser(userProfile.id);
-      
+
       setUserProfile(prev => ({
         ...prev,
         is_following: data.following,
@@ -44,68 +39,57 @@ const ProfileHeader = ({ user, isCurrentUser, onUpdateUser }) => {
 
     } catch (error) {
       console.error('Failed to toggle follow:', error);
-      // Rollback ke state semula jika API call gagal
+
       setUserProfile(originalProfile);
     }
   };
 
-  const defaultAvatarUrl = 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/uploads/default-avatar.png'; // Ganti jika perlu
-  const avatarSrc = getImageUrl(user?.avatar_url || defaultAvatarUrl);
-
   return (
-    <div className="bg-white shadow">
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row items-center gap-6">
+    <div className="bg-white shadow-sm p-4 md:p-6 rounded-lg">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
+        <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden flex-shrink-0">
+          <Image
+            src={getImageUrl(userProfile.avatar_url, '/img/default-avatar.png')}
+            alt={userProfile.username}
+            layout="fill"
+            objectFit="cover"
+            priority
+          />
+        </div>
+        <div className="flex-grow text-center sm:text-left">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{userProfile.fullname || userProfile.username}</h1>
+          <p className="text-sm text-gray-500">@{userProfile.username}</p>
+          <p className="mt-2 text-gray-600 max-w-lg mx-auto sm:mx-0">{userProfile.bio || 'No bio yet.'}</p>
 
-          <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-lg">
-            <Image src={avatarSrc} alt={`${user?.username || 'User'}'s profile`} layout="fill" objectFit="cover" key={avatarSrc} />
-          </div>
-          
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-2xl font-bold text-gray-900">{user?.username || 'User'}</h1>
-            {user?.bio && <p className="mt-2 text-gray-700">{user.bio}</p>}
-            
-            <div className="flex justify-center md:justify-start gap-8 sm:gap-12 mt-4">
-              <div className="text-center">
-                <span className="font-bold block text-sm sm:text-base">{user?.pins_count || 0}</span>
-                <span className="text-gray-600 text-xs sm:text-sm">Pins</span>
-              </div>
-              <div className="text-center">
-
-                <span className="font-bold block text-sm sm:text-base">{user?.followers_count || 0}</span>
-                <span className="text-gray-600 text-xs sm:text-sm">Followers</span>
-              </div>
-              <div className="text-center">
-                <span className="font-bold block text-sm sm:text-base">{user?.following_count || 0}</span>
-                <span className="text-gray-600 text-xs sm:text-sm">Following</span>
-              </div>
+          <div className="mt-4 flex justify-center sm:justify-start space-x-6 text-sm">
+            <div className="text-center">
+              <span className="font-bold block text-lg">{userProfile.pins_count || 0}</span>
+              <span className="text-gray-500">Posts</span>
+            </div>
+            <div className="text-center">
+              <span className="font-bold block text-lg">{userProfile.follower_count || 0}</span>
+              <span className="text-gray-500">Followers</span>
+            </div>
+            <div className="text-center">
+              <span className="font-bold block text-lg">{userProfile.following_count || 0}</span>
+              <span className="text-gray-500">Following</span>
             </div>
           </div>
-          
-          <div className="flex flex-col sm:flex-row items-center gap-3 mt-4 md:mt-0">
-            <Link href="/" className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm sm:text-base w-full sm:w-auto justify-center">
-              <FiHome /> Beranda
-            </Link>
-
-            {isCurrentUser && (
-              <Link href="/settings/profile" className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm sm:text-base w-full sm:w-auto justify-center">
-                <FiSettings /> Setting
-              </Link>
-            )}
-            {!isCurrentUser && user && (
-              <button 
-                onClick={handleFollow} 
-                className={`px-6 py-2 rounded-full font-semibold text-sm transition-colors w-full sm:w-auto justify-center ${
-
-                  user.is_following 
-                    ? 'bg-gray-200 text-black hover:bg-gray-300' 
-                    : 'bg-primary text-white hover:bg-primary-dark'
-                }`}
-              >
-                {user.is_following ? 'Diikuti' : 'Ikuti'}
-              </button>
-            )}
-          </div>
+        </div>
+        <div className="flex-shrink-0 mt-4 sm:mt-0">
+          {isCurrentUser ? (
+            <Button variant="secondary" onClick={onEdit}>
+              Edit Profile
+            </Button>
+          ) : (
+            <Button
+              variant={isFollowing ? 'secondary' : 'primary'}
+              onClick={handleToggleFollow}
+              disabled={!currentUser}
+            >
+              {isFollowing ? 'Following' : 'Follow'}
+            </Button>
+          )}
         </div>
       </div>
     </div>
