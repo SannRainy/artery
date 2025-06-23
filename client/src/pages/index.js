@@ -26,6 +26,8 @@ export default function Home() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
+  const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
+
   // --- State untuk Modal ---
   const [selectedPinId, setSelectedPinId] = useState(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
