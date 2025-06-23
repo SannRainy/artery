@@ -3,15 +3,23 @@ import { useState, useEffect, forwardRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContexts';
 import { likePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
-import { useInView } from '../../hooks/useInView'; // Asumsi hook ini sudah dibuat
+import { useInView } from '../../hooks/useInView';
+import Image from 'next/image';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+const getImageUrl = (url, defaultImg = '/img/default-pin.png') => {
+  if (!url) return defaultImg;
+  if (url.startsWith('/uploads/')) {
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+    return `${BASE_URL}${url}`;
+  }
+  return url;
+};
 
 const PinCard = forwardRef(({ pin, index }, ref) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
   const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
-  const [aspectRatio, setAspectRatio] = useState(3 / 4);
+  const [aspectRatio, setAspectRatio] = useState(3 / 4); // Default aspect ratio
 
   const [animationRef, isInView] = useInView({ threshold: 0.1, triggerOnce: true });
 
@@ -26,25 +34,10 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
     },
     [animationRef, ref]
   );
-
+  
   useEffect(() => {
     setIsLiked(pin?.is_liked || false);
     setLikeCount(pin?.like_count || 0);
-
-    if (pin?.image_url) {
-      const img = new Image();
-      const imageUrl = pin.image_url.startsWith('/uploads/') 
-        ? `${BASE_URL}${pin.image_url}` 
-        : pin.image_url;
-      
-      img.src = imageUrl;
-      img.onload = () => {
-        if (img.naturalWidth > 0 && img.naturalHeight > 0) {
-          setAspectRatio(img.naturalWidth / img.naturalHeight);
-        }
-      };
-      img.onerror = () => setAspectRatio(3 / 4);
-    }
   }, [pin]);
 
   const handleLike = async (e) => {
@@ -74,7 +67,6 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   const pinUser = pin.user || {};
 
   return (
-
     <div
       ref={setRefs}
       className={`transition-all duration-700 ease-out ${
@@ -82,40 +74,42 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
       }`}
       style={{ transitionDelay: `${(index % 20) * 50}ms` }}
     >
-
-      <div className="cursor-zoom-in rounded-lg overflow-hidden shadow-md hover:shadow-lg bg-white">
-        
+      <div className="group cursor-zoom-in rounded-2xl overflow-hidden bg-white relative shadow-sm hover:shadow-lg transition-shadow">
         <div className="relative">
-          <div className="w-full bg-gray-100" style={{ aspectRatio: aspectRatio }}>
-            <img
-              src={pin.image_url?.startsWith('/uploads/') ? `${BASE_URL}${pin.image_url}` : (pin.image_url || '/img/default-pin.png')}
-              alt={pin.title || 'Pin image'}
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-300 flex flex-col justify-end p-3">
-            <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
+
+          <Image
+            src={getImageUrl(pin.image_url)}
+            alt={pin.title || 'Pin image'}
+            width={500}
+            height={500}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="w-full h-auto object-cover"
+            onLoad={({ target }) => {
+              const { naturalWidth, naturalHeight } = target;
+              if (naturalWidth > 0 && naturalHeight > 0) {
+                 setAspectRatio(naturalWidth / naturalHeight);
+              }
+            }}
+            style={{ aspectRatio: aspectRatio }}
+          />
+          {/* -------------------------------------------------------- */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
+             <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
           </div>
         </div>
 
         <div className="p-3">
-          {pin.tags && pin.tags.length > 0 && (
-            <div className="flex items-center space-x-1 flex-wrap mb-2">
-              {pin.tags.slice(0, 2).map((tag) => (
-                tag && tag.name && <span key={tag.id} className="text-xs text-gray-500 hover:text-primary">#{tag.name}</span>
-              ))}
-              {pin.tags.length > 2 && <span className="text-xs text-gray-500">+{pin.tags.length - 2}</span>}
-            </div>
-          )}
           <div className="flex justify-between items-center">
-
             <div className="flex items-center space-x-2 group">
-              <img
-                src={pinUser.avatar_url?.startsWith('/uploads/') ? `${BASE_URL}${pinUser.avatar_url}` : (pinUser.avatar_url || '/img/default-avatar.png')}
-                alt={pinUser.username || 'User avatar'}
-                className="w-6 h-6 rounded-full object-cover"
-              />
-              <span className="text-xs font-medium text-gray-700 group-hover:text-primary">{pinUser.username || 'Anonymous'}</span>
+              <div className="relative w-6 h-6 rounded-full overflow-hidden">
+                  <Image
+                    src={getImageUrl(pinUser.avatar_url, '/img/default-avatar.png')}
+                    alt={pinUser.username || 'User avatar'}
+                    layout="fill"
+                    objectFit="cover"
+                  />
+              </div>
+              <span className="text-xs font-medium text-gray-700">{pinUser.username || 'Anonymous'}</span>
             </div>
             
             <div className="flex items-center space-x-3">
@@ -130,7 +124,6 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
