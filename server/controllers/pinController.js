@@ -36,7 +36,7 @@ exports.getRandomPinTitles = async (req, res) => {
 
     const randomPins = await knex('pins')
       .select('id', 'title') 
-  .orderByRaw('RAND()')
+      .orderByRaw(db.client.config.client === 'pg' ? 'RANDOM()' : 'RAND()')
       .limit(5);
 
     res.json(randomPins);

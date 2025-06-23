@@ -5,7 +5,7 @@ exports.up = async (knex) => {
     table.string('username', 50).unique().notNullable();
     table.string('email', 100).unique().notNullable();
     table.string('password_hash', 255).notNullable();
-    table.string('avatar_url', 255).defaultTo('/img/default-avatar.png'); // Added
+    table.string('avatar_url', 255).defaultTo('https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/avatars/default-avatar.gif'); // Added
     table.string('bio', 500).defaultTo(''); // Added
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());

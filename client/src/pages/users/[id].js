@@ -6,19 +6,44 @@ import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileContent from '../../components/profile/ProfileContent';
 import ProfileSidebar from '../../components/profile/ProfileSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getUserProfile, followUser as followUserService } from '../../lib/api/profile';
+import { getUserProfile, followUser } from '../../lib/api/profile'; 
 import PinDetailModal from '../../components/pins/PinDetailModal';
+import { toast } from 'react-toastify';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id: userId } = router.query;
   const { user: currentUser } = useAuth();
   
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pins');
+  const [activeTab, setActiveTab] = useState('pins'); 
   const [selectedPin, setSelectedPin] = useState(null);
-  
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!userId) return;
+      
+      setLoading(true);
+      try {
+        const data = await getUserProfile(userId);
+        setProfileUser(data);
+
+        if (data.profile_default_tab) {
+          setActiveTab(data.profile_default_tab);
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+        toast.error('Gagal memuat profil pengguna.');
+        router.push('/404');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [userId, router]);
+
   const handleOpenPinDetail = useCallback((pin) => {
     setSelectedPin(pin);
   }, []);
@@ -27,59 +52,40 @@ export default function ProfilePage() {
     setSelectedPin(null);
   }, []);
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const data = await getUserProfile(id);
-        setProfileUser(data);
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        router.push('/404');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUserProfile();
-  }, [id, router]);
+  const handleUpdateUser = useCallback(async (optimisticUser) => {
+    if (!profileUser || !currentUser) return;
 
-  const handleFollowToggle = useCallback(async () => {
-    if (!profileUser || !currentUser || profileUser.id === currentUser.id) return;
-
-    const originalIsFollowing = profileUser.is_following;
-
-    const originalFollowersCount = profileUser.followersCount; 
-
-    setProfileUser(prevUser => ({
-      ...prevUser,
-      is_following: !prevUser.is_following,
-      followersCount: prevUser.is_following 
-        ? (prevUser.followersCount || 0) - 1 
-        : (prevUser.followersCount || 0) + 1,
-    }));
+    const originalUser = { ...profileUser };
+    
+    setProfileUser(optimisticUser);
 
     try {
-      const response = await followUserService(profileUser.id);
-      setProfileUser(prevUser => ({
-        ...prevUser,
-        is_following: response.following,
 
-      }));
+      await followUser(profileUser.id);
+
     } catch (error) {
       console.error('Failed to toggle follow:', error);
-      setProfileUser(prevUser => ({
-        ...prevUser,
-        is_following: originalIsFollowing,
-        followersCount: originalFollowersCount,
-      }));
-    }
-  }, [profileUser, currentUser, setProfileUser]);
+      toast.error('Terjadi kesalahan. Mengembalikan aksi.');
 
-  if (loading || !profileUser) {
+      setProfileUser(originalUser);
+    }
+  }, [profileUser, currentUser]);
+
+
+  if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex justify-center items-center min-h-screen">
         <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!profileUser) {
+
+    return (
+      <div className="text-center py-20">
+        <h1 className="text-2xl font-bold">Profil tidak ditemukan</h1>
+        <p className="text-gray-600">Pengguna yang Anda cari mungkin tidak ada.</p>
       </div>
     );
   }
@@ -89,10 +95,10 @@ export default function ProfilePage() {
       <ProfileHeader 
         user={profileUser} 
         isCurrentUser={currentUser?.id === profileUser.id}
-        onFollowToggle={handleFollowToggle} 
+
+        onUpdateUser={handleUpdateUser} 
       />
       
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           

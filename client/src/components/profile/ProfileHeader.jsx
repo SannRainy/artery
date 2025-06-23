@@ -1,25 +1,17 @@
 // client/src/components/profile/ProfileHeader.jsx
+
 import Image from 'next/image';
 import { FiSettings, FiHome } from 'react-icons/fi';
 import Link from 'next/link';
-import { useState, useEffect } from 'react'; 
 import { useAuth } from '../../contexts/AuthContexts'; 
 import { followUser } from '../../lib/api/profile'; 
 import { toast } from 'react-toastify'; 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:3000';
+import { getImageUrl } from '../../utils/helpers';
 
-const ProfileHeader = ({ user, isCurrentUser }) => {
+
+const ProfileHeader = ({ user, isCurrentUser, onUpdateUser }) => {
   const { user: currentUser } = useAuth();
 
-
-  const [isFollowing, setIsFollowing] = useState(user?.is_following || false);
-  const [followersCount, setFollowersCount] = useState(user?.followersCount || 0);
-
-
-  useEffect(() => {
-    setIsFollowing(user?.is_following || false);
-    setFollowersCount(user?.followersCount || 0);
-  }, [user]);
 
   const handleFollow = async () => {
     if (!currentUser) {
@@ -27,30 +19,35 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
       return;
     }
 
-    const originalIsFollowing = isFollowing;
-    const originalFollowersCount = followersCount;
-    setIsFollowing(!originalIsFollowing);
-    setFollowersCount(prev => (originalIsFollowing ? prev - 1 : prev + 1));
+
+    const originalUser = { ...user };
+
+
+    const optimisticUser = {
+      ...user,
+      is_following: !user.is_following,
+
+      followers_count: user.is_following 
+        ? user.followers_count - 1 
+        : user.followers_count + 1,
+    };
+
+
+    onUpdateUser(optimisticUser);
 
     try {
+      // Panggil API
       await followUser(user.id);
     } catch (error) {
       console.error("Gagal follow/unfollow:", error);
-      toast.error("Terjadi kesalahan.");
-      // Rollback jika gagal
-      setIsFollowing(originalIsFollowing);
-      setFollowersCount(originalFollowersCount);
+      toast.error("Terjadi kesalahan saat mengikuti pengguna.");
+
+      onUpdateUser(originalUser);
     }
   };
 
-  let avatarSrc = '/img/default-avatar.png'; 
-  if (user && user.avatar_url) {
-    if (user.avatar_url.startsWith('/uploads/')) { 
-      avatarSrc = `${BASE_URL}${user.avatar_url}`;
-    } else if (user.avatar_url.startsWith('/img/')) { 
-      avatarSrc = user.avatar_url; 
-    }
-  }
+  const defaultAvatarUrl = 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/uploads/default-avatar.png'; // Ganti jika perlu
+  const avatarSrc = getImageUrl(user?.avatar_url || defaultAvatarUrl);
 
   return (
     <div className="bg-white shadow">
@@ -67,15 +64,16 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
             
             <div className="flex justify-center md:justify-start gap-8 sm:gap-12 mt-4">
               <div className="text-center">
-                <span className="font-bold block text-sm sm:text-base">{user?.pinsCount || 0}</span>
+                <span className="font-bold block text-sm sm:text-base">{user?.pins_count || 0}</span>
                 <span className="text-gray-600 text-xs sm:text-sm">Pins</span>
               </div>
               <div className="text-center">
-                <span className="font-bold block text-sm sm:text-base">{followersCount}</span>
+
+                <span className="font-bold block text-sm sm:text-base">{user?.followers_count || 0}</span>
                 <span className="text-gray-600 text-xs sm:text-sm">Followers</span>
               </div>
               <div className="text-center">
-                <span className="font-bold block text-sm sm:text-base">{user?.followingCount || 0}</span>
+                <span className="font-bold block text-sm sm:text-base">{user?.following_count || 0}</span>
                 <span className="text-gray-600 text-xs sm:text-sm">Following</span>
               </div>
             </div>
@@ -92,18 +90,17 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
               </Link>
             )}
             {!isCurrentUser && user && (
-
               <button 
                 onClick={handleFollow} 
                 className={`px-6 py-2 rounded-full font-semibold text-sm transition-colors w-full sm:w-auto justify-center ${
-                  isFollowing 
+
+                  user.is_following 
                     ? 'bg-gray-200 text-black hover:bg-gray-300' 
                     : 'bg-primary text-white hover:bg-primary-dark'
                 }`}
               >
-                {isFollowing ? 'Diikuti' : 'Ikuti'}
+                {user.is_following ? 'Diikuti' : 'Ikuti'}
               </button>
-
             )}
           </div>
         </div>

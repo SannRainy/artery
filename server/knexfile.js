@@ -3,15 +3,9 @@ dotenv.config();
 
 module.exports = {
   development: {
-    client: 'mysql2',
-    connection: {
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      database: process.env.DB_NAME || 'Artery',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      charset: 'utf8mb4'
-    },
+    client: 'pg',
+    connection:process.env.DATABASE_URL,
+    
     pool: {
       min: 2,
       max: 10
