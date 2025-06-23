@@ -5,7 +5,7 @@ module.exports = {
       {
         protocol: 'https',
 
-        hostname: 'weuskrczzjbswnpsgbmp', 
+        hostname: 'weuskrczzjbswnpsgbmp.supabase.co', 
         port: '',
         pathname: '/storage/v1/object/public/**',
       },
@@ -13,16 +13,13 @@ module.exports = {
       {
         protocol: 'https',
         hostname: '*.up.railway.app',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
       }
     ],
-    domains: ['localhost', 'via.placeholder.com'],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:3000/api/:path*'
-      }
-    ]
-  }
-} 
+
+};
+module.exports = nextConfig;
