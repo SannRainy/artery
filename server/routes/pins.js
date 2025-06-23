@@ -2,27 +2,12 @@
 
 const express = require('express');
 const multer = require('multer');
+const supabase = require('../utils/supabaseClient');
 const path = require('path');
 const fs = require('fs');
 const { authenticate } = require('../middleware/auth.js');
 
-const uploadPath = path.join(__dirname, '..', '..', 'public/uploads');
-
-try {
-  fs.mkdirSync(uploadPath, { recursive: true });
-} catch (err) {
-
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => { 
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
@@ -33,11 +18,11 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-const uploadMiddleware = multer({
-  storage,
+const upload = multer({
+  storage: storage, 
   limits: { fileSize: 5 * 1024 * 1024 }, 
-  fileFilter
-}).single('image_url');
+  fileFilter: fileFilter
+});
 
 
 module.exports = function (db) {
@@ -153,88 +138,83 @@ module.exports = function (db) {
   });
 
   // --- POST /pins - Membuat pin baru ---
-  router.post('/', authenticate, (req, res, next) => {
-    const requestId = req.requestId || `req-${Date.now()}`;
-    const timestamp = new Date().toISOString();
-    uploadMiddleware(req, res, (err) => {
-      if (err) {
-        if (err instanceof multer.MulterError) {
-          let message = 'File upload error.';
-          if (err.code === 'LIMIT_FILE_SIZE') message = 'File is too large. Maximum size is 5MB.';
-          else if (err.code === 'LIMIT_UNEXPECTED_FILE') message = err.message || 'Invalid file type or unexpected file.';
-          return res.status(400).json({ error: { message, code: err.code, requestId, timestamp }});
-        }
-        return res.status(500).json({ error: { message: 'An unexpected error occurred during file upload.', requestId, timestamp }});
-      }
-      next();
-    });
-  }, async (req, res) => {
-    const requestId = req.requestId || `req-${Date.now()}`;
-    const timestamp = new Date().toISOString();
-    const userId = req.user.id;
-    try {
+  router.post('/', authenticate, upload.single('image'), async (req, res) => {
+      const requestId = req.requestId || `req-${Date.now()}`;
+      const timestamp = new Date().toISOString();
+      const userId = req.user.id;
+          
+      try {
       const { title, description, category } = req.body;
-      if (!title || title.trim().length === 0) {
-        return res.status(400).json({ error: { message: 'Title is required.', requestId, timestamp }});
+        if (!title || title.trim().length === 0) {
+          return res.status(400).json({ error: { message: 'Title is required.', requestId, timestamp }});
       }
-      if (!req.file) {
-        return res.status(400).json({ error: { message: 'Image file is required.', requestId, timestamp }});
+        if (!req.file) {
+          return res.status(400).json({ error: { message: 'Image file is required.', requestId, timestamp }});
       }
-      const image_url_path = `/uploads/${req.file.filename}`;
-      const insertData = {
-        title: title.trim(),
-        description: description ? description.trim() : null,
-        image_url: image_url_path,
-        user_id: userId,
-        created_at: new Date(),
-        updated_at: new Date()
-      };
+
+      // --- Logika Upload ke Supabase ---
+      const file = req.file;
+      const fileExt = path.extname(file.originalname);
+      const fileName = `pin-${Date.now()}${fileExt}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('pins') // Nama bucket di Supabase
+        .upload(fileName, file.buffer, {
+          contentType: file.mimetype,
+          cacheControl: '3600'
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
       
+      const { data: { publicUrl } } = supabase.storage
+        .from('pins')
+        .getPublicUrl(fileName);
+      // ---------------------------------
+
+      const insertData = {
+          title: title.trim(),
+          description: description ? description.trim() : null,
+          image_url: publicUrl, // <-- Simpan URL dari Supabase
+          user_id: userId,
+          created_at: new Date(),
+          updated_at: new Date()
+      };
+ 
       const newPinResponse = await db.transaction(async trx => {
-        const result = await trx('pins').insert(insertData);
-        const pinId = result[0]; 
+      const [pinId] = await trx('pins').insert(insertData).returning('id');
         if (!pinId) throw new Error('Failed to insert pin or retrieve its ID.');
 
-        const insertedPinDetails = await trx('pins').where({ id: pinId }).first();
+      const insertedPinDetails = await trx('pins').where({ id: pinId.id }).first();
         if (!insertedPinDetails) throw new Error('Failed to fetch newly created pin details.');
-
-        let tagsForNewPin = [];
+              
+              // Logika tag tetap sama
+      let tagsForNewPin = [];
         if (category && category.trim() !== '') {
-          const tagName = category.trim().toLowerCase();
-          let tag = await trx('tags').where({ name: tagName }).first();
-          let tagId;
-          if (tag) {
-            tagId = tag.id;
-          } else {
-            const tagInsertResult = await trx('tags').insert({ name: tagName });
-            tagId = tagInsertResult[0]; 
-          }
-          if (tagId) {
-            await trx('pin_tags').insert({ pin_id: pinId, tag_id: tagId });
-            const newTagData = await trx('tags').where({id: tagId}).first();
-            if (newTagData) tagsForNewPin.push({ id: newTagData.id, name: newTagData.name });
-          }
-        }
-        const userDetails = await trx('users').where({id: userId}).select('username', 'avatar_url').first();
-        return {
-            ...insertedPinDetails,
-            tags: tagsForNewPin,
-            user: { id: userId, username: userDetails.username, avatar_url: userDetails.avatar_url },
-            like_count: 0, comment_count: 0, is_liked: false
-        };
-      });
-      res.status(201).json(newPinResponse);
-    } catch (err) {
-      console.error(`[${requestId}] [${timestamp}] Error creating pin:`, err.message, err.stack);
-      if (req.file && req.file.path) {
-        fs.unlink(req.file.path, (unlinkErr) => {
-          if (unlinkErr) console.error(`[${requestId}] [${timestamp}] Failed to delete uploaded file: ${req.file.path}`, unlinkErr);
-        });
+      const tagName = category.trim().toLowerCase();
+      let tag = await trx('tags').where({ name: tagName }).first();
+        if (!tag) {
+                  const [newTag] = await trx('tags').insert({ name: tagName }).returning('*');
+                  tag = newTag;
+                  }
+        await trx('pin_tags').insert({ pin_id: pinId.id, tag_id: tag.id });
+        tagsForNewPin.push({ id: tag.id, name: tag.name });
       }
-      const errorMessage = err.message || 'Failed to create pin.';
-      res.status(500).json({ error: { message: errorMessage, details: err.message, requestId, timestamp }});
-    }
-  });
+      const userDetails = await trx('users').where({id: userId}).select('username', 'avatar_url').first();
+          return {
+          ...insertedPinDetails,
+          tags: tagsForNewPin,
+          user: { id: userId, username: userDetails.username, avatar_url: userDetails.avatar_url },
+          like_count: 0, comment_count: 0, is_liked: false
+          };
+          });
+      res.status(201).json(newPinResponse);
+      } catch (err) {
+      console.error(`[${requestId}] [${timestamp}] Error creating pin:`, err.message, err.stack);
+      res.status(500).json({ error: { message: err.message || 'Failed to create pin.', details: err.message, requestId, timestamp }});
+      }
+      });
 
   // --- GET /pins/search ---
   router.get('/search', authenticate, async (req, res) => { 

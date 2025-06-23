@@ -1,45 +1,29 @@
 // server/routes/users.js
 const express = require('express');
 const bcrypt = require('bcrypt');
-const multer = require('multer'); // Sudah ada
+const multer = require('multer'); 
 const jwt = require('jsonwebtoken');
-const path = require('path');    // Sudah ada
-const fs = require('fs');        // <<< TAMBAHKAN INI untuk fs.unlink
+const path = require('path');    
+const fs = require('fs');        
 const { authenticate } = require('../middleware/auth');
+const supabase = require('../utils/supabaseClient');
 
-// --- Konfigurasi Multer untuk Avatar ---
-const avatarUploadPath = path.join(__dirname, '..', '..', 'public/uploads/avatars');
-
-try {
-  fs.mkdirSync(avatarUploadPath, { recursive: true });
-} catch (err) {
-  // console.error('Failed to create avatar upload directory:', err);
-}
-
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, avatarUploadPath);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `avatar-${req.user.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
+const avatarStorage = multer.memoryStorage();
 
 const avatarFileFilter = (req, file, cb) => {
-  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
+   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+     cb(null, true);
   } else {
-    cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Invalid file type for avatar. Only images are allowed.'), false);
-  }
+     cb(new multer.MulterError('LIMIT_UNEXPECTED_FILE', 'Invalid file type for avatar. Only images are allowed.'), false);
+   }
 };
 
 const uploadAvatar = multer({
-  storage: avatarStorage,
-  limits: { fileSize: 2 * 1024 * 1024 }, // Max 2MB untuk avatar
-  fileFilter: avatarFileFilter
-}).single('avatar'); // Nama field dari client harus 'avatar'
+   storage: avatarStorage, // <-- Menggunakan memoryStorage
+   limits: { fileSize: 2 * 1024 * 1024 }, // Max 2MB untuk avatar
+   fileFilter: avatarFileFilter
+}).single('avatar');
 
 module.exports = function (db) {
   const router = express.Router();
@@ -212,32 +196,20 @@ module.exports = function (db) {
 
   // ✅ UPDATE USER PROFILE
 
-  router.put('/:id', authenticate, (req, res, next) => {
-
-    uploadAvatar(req, res, function (err) {
-      const requestId = req.requestId;
-      const timestamp = new Date().toISOString();
-      if (err instanceof multer.MulterError) {
-        return res.status(400).json({ error: { message: err.message, code: err.code, requestId, timestamp } });
-      } else if (err) {
-        console.error(`[${requestId}] Avatar upload error:`, err);
-        return res.status(500).json({ error: { message: 'Avatar upload failed.', details: err.message, requestId, timestamp } });
-      }
-      next();
-    });
-  }, async (req, res) => {
+  router.put('/:id', authenticate, uploadAvatar, async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
+
     try {
-      if (parseInt(req.params.id, 10) !== req.user.id) {
+      if (parseInt(req.params.id, 10) !== req.user.id){
         return res.status(403).json({ error: { message: 'Unauthorized' }});
       }
 
       const { username, bio, location, nationality, date_of_birth, email } = req.body;
-      const updates = { updated_at: db.fn.now() };
+      const updates = { updated_at: new Date() };
 
       if (username !== undefined) updates.username = username.trim();
-      if (email !== undefined) updates.email = email.trim();
+      if (email !== undefined) updates.email = email.trim(); 
       if (bio !== undefined) updates.bio = bio;
       if (location !== undefined) updates.location = location;
       if (nationality !== undefined) updates.nationality = nationality;
@@ -245,37 +217,51 @@ module.exports = function (db) {
         updates.date_of_birth = date_of_birth || null;
       }
       if (req.file) {
-        updates.avatar_url = `/uploads/avatars/${req.file.filename}`;
+        // 1. Dapatkan info user lama untuk menghapus avatar lama
         const oldUserData = await db('users').where({ id: req.user.id }).select('avatar_url').first();
-        if (oldUserData && oldUserData.avatar_url && oldUserData.avatar_url !== '/img/default-avatar.png' && oldUserData.avatar_url.startsWith('/uploads/avatars/')) {
-            const oldAvatarPath = path.join(__dirname, '..', '..', 'public', oldUserData.avatar_url);
-            fs.unlink(oldAvatarPath, (err) => {
-                if (err && err.code !== 'ENOENT') {
-                    console.error(`[${requestId}] Failed to delete old avatar: ${oldAvatarPath}`, err);
-                }
-            });
+        if (oldUserData && oldUserData.avatar_url && oldUserData.avatar_url.includes('supabase')) {
+          // Hanya hapus jika itu file dari Supabase, bukan default
+          const oldFileName = oldUserData.avatar_url.split('/').pop();
+          await supabase.storage.from('avatars').remove([oldFileName]);
         }
+        
+        // 2. Upload avatar baru
+        const file = req.file;
+        const fileExt = path.extname(file.originalname);
+        const fileName = `avatar-${req.user.id}-${Date.now()}${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars') // Nama bucket avatar
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600'
+          });
+
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
+
+        // 3. Dapatkan URL publik dan simpan ke 'updates'
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+        
+        updates.avatar_url = publicUrl;
       }
-      
-      const fieldsToUpdate = { ...updates };
-      delete fieldsToUpdate.updated_at;
-      
-      if (Object.keys(fieldsToUpdate).length > 0 || req.file) {
-          await db('users').where({ id: req.user.id }).update(updates);
+      // ------------------------------------ 
+      const fieldsToUpdate = Object.keys(updates);
+      // Hanya update jika ada yang diubah
+      if (fieldsToUpdate.length > 1 || req.file) {
+        await db('users').where({ id: req.user.id }).update(updates);
       }
 
       const updatedUser = await db('users')
         .where({ id: req.user.id })
-        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at', 'location', 'nationality', 'date_of_birth') // <-- Tambahkan field baru di sini juga
+        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at', 'location', 'nationality', 'date_of_birth')
         .first();
       res.json(updatedUser);
     } catch (err) {
       console.error(`[${requestId}] Update profile error:`, err);
-      if (req.file && req.file.path) {
-        fs.unlink(req.file.path, (unlinkErr) => {
-          if (unlinkErr) console.error(`[${requestId}] Failed to delete uploaded avatar after DB error: ${req.file.path}`, unlinkErr);
-        });
-      }
       res.status(500).json({ error: { message: 'Internal server error while updating profile', details: err.message, requestId, timestamp }});
     }
   });
