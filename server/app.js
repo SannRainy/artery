@@ -24,6 +24,7 @@ const tagRoutes = require('./routes/tags');
 const pinRoutes = require('./routes/pins')(db);
 const messageRoutes = require('./routes/messages')(db);
 const notificationRoutes = require('./routes/notifications')(db);
+const linkedAccountsRoutes = require('./routes/linkedAccounts');
 
 const app = express();
 const PORT = process.env.PORT || 3000; 
@@ -90,6 +91,7 @@ try {
 }
 
 app.use('/api/v1/users', userRoutes(db));
+app.use('/api/v1/linked-accounts', linkedAccountsRoutes(db)); 
 app.use('/api/v1/tags', authenticate, tagRoutes(db)); 
 app.use('/api/v1/pins', pinRoutes); 
 app.use('/api/v1/messages', messageRoutes);

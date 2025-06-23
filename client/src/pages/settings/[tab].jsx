@@ -10,19 +10,21 @@ import { useAuth } from '../../contexts/AuthContexts';
 import SettingsSidebar from '../../components/settings/SettingsSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Footer from '../../components/layout/Footer'; 
-import { FiLogOut } from 'react-icons/fi';
+import { FiLogOut, FiUser } from 'react-icons/fi';
 
 // Import konten tab
 import EditProfileForm from '../../components/profile/EditProfileForm';
-import AccountSettings from '../../components/settings/AccountSettings'; 
+import LinkedAccounts from '../../components/settings/LinkedAccounts'; 
 import Preferences from '../../components/settings/Preferences';    
-import Privacy from '../../components/settings/Privacy';           
+import PaymentInformation from '../../components/settings/PaymentInformation';
+import SafetySettings from '../../components/settings/SafetySettings';
+import NotificationSettings from '../../components/settings/NotificationSettings';
 
 // Komponen Layout untuk Halaman Pengaturan
 function SettingsPageLayout({ user, activeTab, onLogout, children }) {
   const sidebarItems = [
     { id: 'profile', label: 'Personal details' },
-    { id: 'payment', label: 'Payment Information' }, // Sesuaikan dengan kebutuhan
+    { id: 'payment', label: 'Payment Information' }, 
     { id: 'safety', label: 'Safety' },
     { id: 'preferences', label: 'Preferences' },
     { id: 'notifications', label: 'Notifications' }
@@ -45,6 +47,15 @@ function SettingsPageLayout({ user, activeTab, onLogout, children }) {
                 <nav className="flex flex-col space-y-1">
                     <SettingsSidebar active={activeTab} />
                 </nav>
+                <div className="border-t my-4"></div>
+                <Link
+                  href={`/users/${user.id}`}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 rounded-lg font-semibold text-sm text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors mb-2"
+                >
+                  <FiUser className="h-5 w-5" />
+                  <span>Kembali ke Profil</span>
+                </Link>
+                
                 <div className="border-t my-4"></div>
                 <button 
                   onClick={onLogout}
@@ -78,6 +89,8 @@ export default function DynamicSettingsPage() {
   const { user, loading: authLoading, logout, refreshUser } = useAuth();
   const { tab } = router.query;
 
+  console.log('Current Router Tab:', tab);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace(`/login?returnUrl=/settings/profile`);
@@ -93,22 +106,30 @@ export default function DynamicSettingsPage() {
   }
 
   const renderContent = () => {
+    const validTabs = ['profile','payment', 'safety', 'preferences', 'notifications', 'passengers', 'account'];
+    if (!validTabs.includes(tab)) {
+      return <div className="text-center py-10">
+        <h3 className="text-xl font-bold">Halaman Pengaturan Tidak Ditemukan</h3>
+        <p className="text-gray-500">Silakan pilih menu pengaturan yang valid dari samping.</p>
+      </div>;
+    }   
     switch (tab) {
       case 'profile':
-        // currentUser di-pass dengan nama yang benar
         return <EditProfileForm currentUser={user} onProfileUpdated={refreshUser} />;
+      case 'payment':
+        return <PaymentInformation currentUser={user} />;
+      case 'safety':
+        return <SafetySettings currentUser={user} />;
+      case 'preferences':
+        return <Preferences currentUser={user} />;
+      case 'notifications':
+        return <NotificationSettings currentUser={user} />;
+      case 'passengers':
+        return <LinkedAccounts currentUser={user} />;
       case 'account':
-        return <AccountSettings />;
-      case 'preference':
-        return <Preferences />;
-      case 'privacy':
-        return <Privacy />;
-      default:
-        // Arahkan ke halaman profil jika tab tidak valid
-        if (typeof window !== 'undefined') {
-            router.replace('/settings/profile');
-        }
-        return <LoadingSpinner/>;
+        return <div>Account Settings Page</div>;
+       default:
+        return <LoadingSpinner />;
     }
   };
 

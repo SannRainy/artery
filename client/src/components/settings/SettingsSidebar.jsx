@@ -32,7 +32,7 @@ export default function SettingsSidebar({ active = 'profile' }) {
     { 
       id: 'preference',
       label: 'Preferences', 
-      href: '/settings/preference',
+      href: '/settings/preferences',
       icon: Cog8ToothIcon 
     },
     { 

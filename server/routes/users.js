@@ -280,6 +280,39 @@ module.exports = function (db) {
     }
   });
 
+  router.post('/change-password', authenticate, async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    const { id } = req.user;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: { message: 'All fields are required.' } });
+    }
+
+    try {
+      const user = await db('users').where({ id }).first();
+      if (!user) {
+        return res.status(404).json({ error: { message: 'User not found.' } });
+      }
+
+      const isValid = await bcrypt.compare(currentPassword, user.password_hash);
+      if (!isValid) {
+        return res.status(401).json({ error: { message: 'Current password is incorrect.' } });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: { message: 'New password must be at least 6 characters long.' } });
+      }
+
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await db('users').where({ id }).update({ password_hash: newPasswordHash });
+
+      res.status(200).json({ message: 'Password changed successfully.' });
+
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: { message: 'Internal server error.' } });
+    }
+  });
 
   router.get('/:id/boards', async (req, res) => {
     const requestId = req.requestId;

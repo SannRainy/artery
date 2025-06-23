@@ -1,6 +1,6 @@
 // client/src/components/profile/ProfileHeader.jsx
 import Image from 'next/image';
-import { FiEdit, FiHome } from 'react-icons/fi';
+import { FiSettings, FiHome } from 'react-icons/fi';
 import Link from 'next/link';
 import { useState, useEffect } from 'react'; 
 import { useAuth } from '../../contexts/AuthContexts'; 
@@ -88,7 +88,7 @@ const ProfileHeader = ({ user, isCurrentUser }) => {
 
             {isCurrentUser && (
               <Link href="/settings/profile" className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition text-sm sm:text-base w-full sm:w-auto justify-center">
-                <FiEdit /> Edit Profile
+                <FiSettings /> Setting
               </Link>
             )}
             {!isCurrentUser && user && (
