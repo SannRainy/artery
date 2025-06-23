@@ -76,12 +76,11 @@ module.exports = function (db) {
         countQueryBuilder.whereIn('p_count.id', subquery);
       }
       if (mode === 'random') {
-        pinsQuery.orderBy(db.raw('RAND()'));
-        pinsQuery.limit(limit); 
+        const randomOrder = db.client.config.client === 'pg' ? db.raw('RANDOM()') : db.raw('RAND()');
+        pinsQuery.orderBy(randomOrder).limit(limit); 
                                 
       } else { 
-        pinsQuery.orderBy('p.created_at', 'desc');
-        pinsQuery.limit(limit).offset(offset);
+        pinsQuery.orderBy('p.created_at', 'desc').limit(limit).offset(offset);
       }
 
       const pinsData = await pinsQuery;
@@ -302,9 +301,10 @@ module.exports = function (db) {
     const requestId = req.requestId || `req-${Date.now()}`;
     const timestamp = new Date().toISOString();
     try {
-      const randomPins = await db('pins')
+      const randomOrder = db.client.config.client === 'pg' ? 'RANDOM()' : 'RAND()';
+        const randomPins = await db('pins')
         .select('id', 'title')
-    .orderByRaw('RAND()') 
+        .orderByRaw(randomOrder) 
         .limit(5);
 
       res.json(randomPins);
