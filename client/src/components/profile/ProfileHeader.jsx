@@ -1,5 +1,7 @@
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { FiHome, FiSettings } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContexts';
 import Button from '../ui/Button';
 import { getImageUrl } from '../../utils/helpers';
@@ -28,7 +30,6 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
     setUserProfile(optimisticUser);
 
     try {
-
       const data = await toggleFollowUser(userProfile.id);
 
       setUserProfile(prev => ({
@@ -39,7 +40,6 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
 
     } catch (error) {
       console.error('Failed to toggle follow:', error);
-
       setUserProfile(originalProfile);
     }
   };
@@ -78,9 +78,19 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
         </div>
         <div className="flex-shrink-0 mt-4 sm:mt-0">
           {isCurrentUser ? (
-            <Button variant="secondary" onClick={onEdit}>
-              Edit Profile
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Link href="/" passHref>
+                <Button as="a" variant="icon" aria-label="Beranda">
+                  <FiHome className="w-5 h-5" />
+                </Button>
+              </Link>
+              <Link href="/settings/profile" passHref>
+                <Button as="a" variant="secondary" aria-label="Edit Profil">
+                  <FiSettings className="w-5 h-5 sm:mr-2" />
+                  <span className="hidden sm:inline">Edit Profile</span>
+                </Button>
+              </Link>
+            </div>
           ) : (
             <Button
               variant={isFollowing ? 'secondary' : 'primary'}
