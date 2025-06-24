@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');        
 const { authenticate } = require('../middleware/auth');
 const supabase = require('../utils/supabaseClient');
+const sendEmail = require('../utils/email');
 
 const avatarStorage = multer.memoryStorage();
 const avatarFileFilter = (req, file, cb) => {
@@ -19,8 +20,8 @@ const avatarFileFilter = (req, file, cb) => {
   }
 };
 const uploadAvatar = multer({
-   storage: avatarStorage, // <-- Menggunakan memoryStorage
-   limits: { fileSize: 2 * 1024 * 1024 }, // Max 2MB untuk avatar
+   storage: avatarStorage, 
+   limits: { fileSize: 2 * 1024 * 1024 },
    fileFilter: avatarFileFilter
 }).single('avatar');
 
@@ -31,6 +32,7 @@ module.exports = function (db) {
   router.post('/register', async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
+
     try {
       const { username, email, password } = req.body;
       if (!username || !email || !password) {
@@ -45,15 +47,15 @@ module.exports = function (db) {
         username,
         email,
         password_hash: hashedPassword,
-        avatar_url: '/img/default-avatar.png', // <<< GANTI DEFAULT AVATAR DI SINI
+        is_verified: false,
+        avatar_url: 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/avatars/default-avatar.gif', 
         bio: '',
         created_at: db.fn.now(),
         updated_at: db.fn.now()
-      }).returning('id'); // .returning('id') mungkin tidak selalu mengembalikan objek di MySQL, tapi ID di array
+      }).returning('id');
 
-      // Dapatkan ID dengan benar
-      const userId = (typeof userIdResult === 'object' && userIdResult !== null) ? userIdResult.id : userIdResult;
 
+      const userId = userIdResult.id || userIdResult;
 
       if (!userId) {
           console.error(`[${requestId}] User registration failed, could not retrieve userId.`);
