@@ -1,11 +1,12 @@
+// client/src/components/profile/ProfileHeader.jsx
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FiHome, FiSettings } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContexts';
 import Button from '../ui/Button';
 import { getImageUrl } from '../../utils/helpers';
 import { toggleFollowUser } from '../../lib/api/profile';
+import { FiHome, FiEdit2 } from 'react-icons/fi';
 
 const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
   const { user: currentUser } = useAuth();
@@ -17,27 +18,22 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
 
   const handleToggleFollow = async () => {
     if (!currentUser) return;
-
     const originalProfile = { ...userProfile };
-
     const optimisticUser = {
       ...userProfile,
       is_following: !isFollowing,
-      follower_count: isFollowing
-        ? userProfile.follower_count - 1
-        : userProfile.follower_count + 1,
+      followersCount: isFollowing
+        ? userProfile.followersCount - 1
+        : userProfile.followersCount + 1,
     };
     setUserProfile(optimisticUser);
-
     try {
       const data = await toggleFollowUser(userProfile.id);
-
       setUserProfile(prev => ({
         ...prev,
         is_following: data.following,
-        follower_count: data.follower_count,
+        followersCount: data.follower_count,
       }));
-
     } catch (error) {
       console.error('Failed to toggle follow:', error);
       setUserProfile(originalProfile);
@@ -60,11 +56,10 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">{userProfile.fullname || userProfile.username}</h1>
           <p className="text-sm text-gray-500">@{userProfile.username}</p>
           <p className="mt-2 text-gray-600 max-w-lg mx-auto sm:mx-0">{userProfile.bio || 'No bio yet.'}</p>
-
           <div className="mt-4 flex justify-center sm:justify-start space-x-6 text-sm">
             <div className="text-center">
               <span className="font-bold block text-lg">{userProfile.pins_count || 0}</span>
-              <span className="text-gray-500">Posts</span>
+              <span className="text-gray-500">Pins</span>
             </div>
             <div className="text-center">
               <span className="font-bold block text-lg">{userProfile.follower_count || 0}</span>
@@ -76,20 +71,20 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
             </div>
           </div>
         </div>
+        
         <div className="flex-shrink-0 mt-4 sm:mt-0">
           {isCurrentUser ? (
             <div className="flex items-center space-x-2">
               <Link href="/" passHref>
-                <Button as="a" variant="icon" aria-label="Beranda">
-                  <FiHome className="w-5 h-5" />
+                <Button as="a" variant="light-outline">
+                  <FiHome className="w-4 h-4 mr-2" />
+                  Beranda
                 </Button>
               </Link>
-              <Link href="/settings/profile" passHref>
-                <Button as="a" variant="secondary" aria-label="Edit Profil">
-                  <FiSettings className="w-5 h-5 sm:mr-2" />
-                  <span className="hidden sm:inline">Edit Profile</span>
-                </Button>
-              </Link>
+              <Button variant="secondary" onClick={onEdit}>
+                <FiEdit2 className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
             </div>
           ) : (
             <Button
