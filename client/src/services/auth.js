@@ -41,6 +41,10 @@ export const getCurrentUser = async () => {
   }
 };
 
+export const resendVerificationEmail = async (email) => {
+  const response = await api.post('/users/resend-verification', { email });
+  return response.data;
+};
 
 const handleError = (error, defaultMessage) => {
   if (error.response) {

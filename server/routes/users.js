@@ -75,13 +75,18 @@ module.exports = function (db) {
         verification_token_expires: tokenExpires,
       });
 
-      const verificationUrl = `<span class="math-inline">\{process\.env\.FRONTEND\_URL\}/verify\-email/</span>{verificationToken}`;
+      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
       try {
         await sendEmail({
-          to: email,
-          subject: 'Verifikasi Akun Artery Anda',
-          html: `<h1>Selamat Datang di Artery!</h1><p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p><a href="<span class="math-inline">\{verificationUrl\}"\></span>{verificationUrl}</a><p>Link ini akan kedaluwarsa dalam 1 jam.</p>`,
-        });
+                    to: email,
+                    subject: 'Verifikasi Akun Artery Anda',
+                    html: `
+                        <h1>Selamat Datang di Artery!</h1>
+                        <p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p>
+                        <a href="${verificationUrl}">${verificationUrl}</a>
+                        <p>Link ini akan kedaluwarsa dalam 1 jam.</p>
+                    `
+                });
       } catch (emailError) {
         console.error("Gagal mengirim email verifikasi:", emailError);
       }
@@ -96,6 +101,53 @@ module.exports = function (db) {
       success: true, 
       message: 'Registrasi berhasil. Silakan cek email Anda untuk verifikasi.' 
     });
+  });
+
+  router.post('/resend-verification', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: { message: 'Email is required' } });
+    }
+
+    try {
+      const user = await db('users').where({ email }).first();
+
+      if (!user) {
+        return res.json({ message: 'If an account with that email exists, a new verification link has been sent.' });
+      }
+
+      if (user.is_verified) {
+        return res.status(400).json({ error: { message: 'This account is already verified.' } });
+      }
+
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 3600000); 
+
+      await db('users').where({ id: user.id }).update({
+        verification_token: verificationToken,
+        verification_token_expires: tokenExpires,
+      });
+
+      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+      await sendEmail({
+            to: email,
+            subject: 'Selamat Datang! Verifikasi Akun Artery Anda',
+            html: `
+                <h1>Selamat Datang di Artery!</h1>
+                <p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p>
+                <a href="${verificationUrl}">${verificationUrl}</a>
+                <p>Link ini akan kedaluwarsa dalam 1 jam.</p>
+            `
+        });
+
+      res.json({ message: 'If an account with that email exists, a new verification link has been sent.' });
+
+    } catch (err) {
+      console.error('Resend verification error:', err);
+
+      res.status(500).json({ error: { message: 'An internal error occurred. Please try again later.' } });
+    }
   });
 
   router.get('/verify-email/:token', async (req, res) => {

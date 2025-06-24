@@ -1,76 +1,85 @@
-import { useForm } from 'react-hook-form'
-import { useAuth } from '../../contexts/AuthContexts'
-import Input from '../ui/Input'
-import Button from '../ui/Button'
-import Link from 'next/link'
-import { useState } from 'react'
-import { toast } from 'react-toastify' 
+// client/src/components/Auth/RegisterForm.jsx
+
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { toast } from 'react-toastify';
+import Link from 'next/link';
+import { useAuth } from '../../contexts/AuthContexts'; 
+import Input from '../ui/Input';
+import Button from '../ui/Button';
+import LoadingSpinner from '../ui/LoadingSpinner';
+
+const schema = yup.object().shape({
+  username: yup.string().required('Username wajib diisi').min(3, 'Username minimal 3 karakter'),
+  email: yup.string().email('Format email tidak valid').required('Email wajib diisi'),
+  password: yup.string().required('Password wajib diisi').min(6, 'Password minimal 6 karakter'),
+});
 
 export default function RegisterForm() {
-  const { register: authRegister } = useAuth()
-  const { register: formRegister, handleSubmit, formState: { errors } } = useForm()
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
+  const { register: authRegister } = useAuth(); 
+  
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: yupResolver(schema),
+  });
 
   const onSubmit = async ({ username, email, password }) => {
-      setLoading(true);
-      setErrorMessage('');
-      try {
-        const result = await authRegister(username, email, password);
-        if (result.success) {
-          toast.success(result.message || 'Registrasi berhasil! Cek email Anda.');
-        } else {
-          setErrorMessage(result.message);
-          toast.error(result.message);
-        }
-      } catch (error) {
-      const fallback = 'Email mungkin sudah terpakai. Silakan coba lagi.'
-      setErrorMessage(fallback)
-      toast.error(fallback)
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+
+      const response = await authRegister(username, email, password);
+
+      const message = response.message || 'Registrasi berhasil! Silakan periksa email Anda untuk verifikasi.';
+      setSuccessMessage(message);
+      toast.success(message);
+    } catch (err) {
+      const message = err.response?.data?.error?.message || 'Registrasi gagal, silakan coba lagi.';
+      setErrorMessage(message);
+      toast.error(`Registrasi Gagal: ${message}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {errorMessage && <div className="text-red-500 text-sm">{errorMessage}</div>}
+      {errorMessage && <div className="text-red-500 text-sm mb-4">{errorMessage}</div>}
+      {successMessage && <div className="text-green-600 text-sm mb-4">{successMessage}</div>}
 
-      <Input
-        label="Username"
-        {...formRegister('username', { required: 'Username is required' })}
-        error={errors.username}
-      />
-
-      <Input
-        label="Email"
-        type="email"
-        {...formRegister('email', {
-          required: 'Email is required',
-          pattern: {
-            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-            message: 'Invalid email address'
-          }
-        })}
-        error={errors.email}
-      />
-
-      <Input
-        label="Password"
-        type="password"
-        {...formRegister('password', {
-          required: 'Password is required',
-          minLength: {
-            value: 6,
-            message: 'Password must be at least 6 characters'
-          }
-        })}
-        error={errors.password}
-      />
-
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? 'Registering...' : 'Register'}
-      </Button>
+      {!successMessage && (
+        <>
+          <Input
+            label="Username"
+            type="text"
+            autoFocus
+            {...register('username')}
+            error={errors.username}
+          />
+          <Input
+            label="Email"
+            type="email"
+            {...register('email')}
+            error={errors.email}
+          />
+          <Input
+            label="Password"
+            type="password"
+            {...register('password')}
+            error={errors.password}
+          />
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? <LoadingSpinner /> : 'Create Account'}
+          </Button>
+        </>
+      )}
 
       <div className="text-sm text-center">
         Already have an account?{' '}
@@ -79,5 +88,5 @@ export default function RegisterForm() {
         </Link>
       </div>
     </form>
-  )
+  );
 }
