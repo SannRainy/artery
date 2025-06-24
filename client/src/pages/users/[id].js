@@ -1,4 +1,5 @@
 // client/src/pages/users/[id].js
+
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../contexts/AuthContexts';
@@ -6,7 +7,7 @@ import ProfileHeader from '../../components/profile/ProfileHeader';
 import ProfileContent from '../../components/profile/ProfileContent';
 import ProfileSidebar from '../../components/profile/ProfileSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { getUserProfile, followUser } from '../../lib/api/profile'; 
+import { getUserProfile } from '../../lib/api/profile'; 
 import PinDetailModal from '../../components/pins/PinDetailModal';
 import { toast } from 'react-toastify';
 
@@ -17,7 +18,7 @@ export default function ProfilePage() {
   
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pins'); 
+  const [activeTab, setActiveTab] = useState('pins');
   const [selectedPin, setSelectedPin] = useState(null);
 
   useEffect(() => {
@@ -52,25 +53,9 @@ export default function ProfilePage() {
     setSelectedPin(null);
   }, []);
 
-  const handleUpdateUser = useCallback(async (optimisticUser) => {
-    if (!profileUser || !currentUser) return;
-
-    const originalUser = { ...profileUser };
-    
-    setProfileUser(optimisticUser);
-
-    try {
-
-      await followUser(profileUser.id);
-
-    } catch (error) {
-      console.error('Failed to toggle follow:', error);
-      toast.error('Terjadi kesalahan. Mengembalikan aksi.');
-
-      setProfileUser(originalUser);
-    }
-  }, [profileUser, currentUser]);
-
+  const handleEdit = () => {
+    router.push('/settings/profile');
+  };
 
   if (loading) {
     return (
@@ -81,22 +66,21 @@ export default function ProfilePage() {
   }
 
   if (!profileUser) {
-
     return (
       <div className="text-center py-20">
         <h1 className="text-2xl font-bold">Profil tidak ditemukan</h1>
-        <p className="text-gray-600">Pengguna yang Anda cari mungkin tidak ada.</p>
+        <p className="text-gray-600">Pengguna yang Anda cari mungkin tidak ada atau terjadi kesalahan.</p>
       </div>
     );
   }
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <ProfileHeader 
-        user={profileUser} 
-        isCurrentUser={currentUser?.id === profileUser.id}
 
-        onUpdateUser={handleUpdateUser} 
+      <ProfileHeader 
+        userProfile={profileUser}
+        setUserProfile={setProfileUser}
+        onEdit={handleEdit}
       />
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -124,6 +108,7 @@ export default function ProfilePage() {
       {selectedPin && (
         <PinDetailModal 
           pin={selectedPin}
+          setPin={setSelectedPin} 
           isOpen={!!selectedPin}
           onClose={handleClosePinDetail}
         />

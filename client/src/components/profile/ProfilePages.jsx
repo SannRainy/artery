@@ -6,7 +6,6 @@ import ProfileContent from './ProfileContent';
 import ProfileSidebar from './ProfileSidebar';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import api from '../../lib/api';
-import { getUserProfile } from '../../lib/api/profile';
 
 const ProfilePage = ({ userData }) => {
   const router = useRouter();
@@ -17,11 +16,10 @@ const ProfilePage = ({ userData }) => {
   const [activeTab, setActiveTab] = useState('posts');
 
   useEffect(() => {
-    if (id && !userData) {
-      setLoading(true);
+    if (!userData) {
       const fetchUser = async () => {
         try {
-          const { data } = await getUserProfile(id);
+          const { data } = await api.get(`/users/${id}`);
           setProfileUser(data);
         } catch (error) {
           console.error('Error fetching user:', error);
@@ -31,12 +29,10 @@ const ProfilePage = ({ userData }) => {
         }
       };
       fetchUser();
-    } else if (userData){
-      setLoading(false);
     }
   }, [id, userData, router]);
 
-  if (loading || !profileUser) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <LoadingSpinner />
@@ -44,17 +40,9 @@ const ProfilePage = ({ userData }) => {
     );
   }
 
-  const handleEdit = () => {
-    router.push('/settings/profile');
-  };
-
   return (
     <div className="bg-gray-50 min-h-screen">
-      <ProfileHeader 
-        userProfile={profileUser}      
-        setUserProfile={setProfileUser} 
-        onEdit={handleEdit}            
-      />
+      <ProfileHeader user={profileUser} isCurrentUser={user?.id === profileUser.id} />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
