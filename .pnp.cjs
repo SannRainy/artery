@@ -2097,6 +2097,7 @@ const RAW_RUNTIME_STATE =
         "packageDependencies": [\
           ["artery_backend", "workspace:server"],\
           ["axios", "npm:1.10.0"],\
+          ["bcrypt", "npm:6.0.0"],\
           ["compression", "npm:1.8.0"],\
           ["cors", "npm:2.8.5"],\
           ["cross-env", "npm:7.0.3"],\
