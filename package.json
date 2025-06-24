@@ -1,6 +1,5 @@
 {
   "name": "artery_project",
-  "private": true,
   "version": "1.0.0",
   "scripts": {
     "start": "npm run start --workspace server",
