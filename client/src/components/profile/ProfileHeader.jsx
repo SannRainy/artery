@@ -74,7 +74,7 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
         
         <div className="flex-shrink-0 mt-4 sm:mt-0">
           {isCurrentUser ? (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-4">
               <Link href="/" passHref>
                 <Button as="a" variant="light-outline">
                   <FiHome className="w-4 h-4 mr-2" />
