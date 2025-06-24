@@ -1,6 +1,7 @@
 // server/routes/users.js
 const express = require('express');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const multer = require('multer'); 
 const jwt = require('jsonwebtoken');
 const path = require('path');    
@@ -63,14 +64,61 @@ module.exports = function (db) {
         .where({ id: userId })
         .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at')
         .first();
+
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const tokenExpires = new Date(Date.now() + 3600000);
+
+      await db('users').where({ id: userId }).update({
+        verification_token: verificationToken,
+        verification_token_expires: tokenExpires,
+      });
+
+      const verificationUrl = `<span class="math-inline">\{process\.env\.FRONTEND\_URL\}/verify\-email/</span>{verificationToken}`;
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Verifikasi Akun Artery Anda',
+          html: `<h1>Selamat Datang di Artery!</h1><p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p><a href="<span class="math-inline">\{verificationUrl\}"\></span>{verificationUrl}</a><p>Link ini akan kedaluwarsa dalam 1 jam.</p>`,
+        });
+      } catch (emailError) {
+        console.error("Gagal mengirim email verifikasi:", emailError);
+      }
+
       const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
       res.json({ user, token });
     } catch (err) {
       console.error(`[${requestId}] Register error:`, err);
       res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});
     }
+      res.status(201).json({ 
+      success: true, 
+      message: 'Registrasi berhasil. Silakan cek email Anda untuk verifikasi.' 
+    });
   });
 
+  router.get('/verify-email/:token', async (req, res) => {
+  const { token } = req.params;
+  try {
+    const user = await db('users')
+      .where({ verification_token: token })
+      .andWhere('verification_token_expires', '>', new Date())
+      .first();
+
+    if (!user) {
+      return res.status(400).json({ error: { message: 'Token verifikasi tidak valid atau sudah kedaluwarsa.' } });
+    }
+
+    await db('users').where({ id: user.id }).update({
+      is_verified: true,
+      verification_token: null,
+      verification_token_expires: null,
+    });
+
+    res.json({ message: 'Email berhasil diverifikasi!' });
+  } catch (err) {
+    res.status(500).json({ error: { message: 'Gagal memverifikasi email.' } });
+  }
+});
   // ✅ LOGIN
   router.post('/login', async (req, res) => {
     const requestId = req.requestId;
@@ -83,6 +131,9 @@ module.exports = function (db) {
       const user = await db('users').where({ email }).first();
       if (!user) {
         return res.status(401).json({ error: { message: 'Invalid credentials', requestId, timestamp }});
+      }
+      if (!user.is_verified) {
+        return res.status(401).json({ error: { message: 'Akun Anda belum diverifikasi. Silakan cek email Anda.' } });
       }
       const isValid = await bcrypt.compare(password, user.password_hash);
       if (!isValid) {

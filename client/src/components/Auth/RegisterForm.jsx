@@ -13,19 +13,17 @@ export default function RegisterForm() {
   const [errorMessage, setErrorMessage] = useState('')
 
   const onSubmit = async ({ username, email, password }) => {
-    setLoading(true)
-    setErrorMessage('')
-    try {
-      const result = await authRegister(username, email, password)
-
-      if (result.success) {
-        toast.success('Pendaftaran berhasil!')
-        // redirect sudah dilakukan dari context
-      } else {
-        setErrorMessage(result.message)
-        toast.error(result.message)
-      }
-    } catch (error) {
+      setLoading(true);
+      setErrorMessage('');
+      try {
+        const result = await authRegister(username, email, password);
+        if (result.success) {
+          toast.success(result.message || 'Registrasi berhasil! Cek email Anda.');
+        } else {
+          setErrorMessage(result.message);
+          toast.error(result.message);
+        }
+      } catch (error) {
       const fallback = 'Email mungkin sudah terpakai. Silakan coba lagi.'
       setErrorMessage(fallback)
       toast.error(fallback)

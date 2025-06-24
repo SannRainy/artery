@@ -50,11 +50,8 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
   try {
-    const { user, token } = await authRegister(username, email, password)
-    localStorage.setItem('token', token)
-    setUser(user)
-    router.push('/')
-    return { success: true }
+    const response = await authRegister(username, email, password);
+    return { success: true, message: response.message };
   } catch (err) {
     console.warn('Registration error:', err?.response?.data?.message || err.message)
     return {
