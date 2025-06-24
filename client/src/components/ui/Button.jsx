@@ -16,7 +16,7 @@ export default function Button({
     icon: 'p-2 rounded-full hover:bg-gray-100 focus:ring-offset-0',
     danger: 'bg-red-500 text-white hover:bg-red-600',
 
-    secondary: 'bg-gray-800 text-white hover:bg-black',
+    secondary: 'bg-gray-800 text-white hover:bg-red',
     'light-outline': 'bg-gray-100 border border-gray-300 text-gray-800 hover:bg-gray-200' 
   }
 
