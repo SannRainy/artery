@@ -30,7 +30,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   useEffect(() => {
     setIsLiked(pin?.is_liked || false);
     setLikeCount(pin?.like_count || 0);
-  }, [pin]);
+  }, [pin.is_liked, pin.like_count]); 
 
   const handleLike = async (e) => {
     e.stopPropagation();
@@ -44,14 +44,17 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
 
     try {
       const response = await toggleLikePin(pin.id);
-      if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
-        setIsLiked(response.liked);
-        setLikeCount(response.new_like_count);
+      if (response ){ 
+        onPinUpdate({
+          id: pin.id,
+          is_liked: response.liked,
+          like_count: response.new_like_count,
+        });
       }
     } catch (err) {
+      setIsLiked(pin.is_liked);
+      setLikeCount(pin.like_count);
       console.error('Error toggling like:', err);
-      setIsLiked(originalIsLiked);
-      setLikeCount(originalLikeCount);
     }
   };
 

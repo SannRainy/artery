@@ -41,6 +41,18 @@ export default function Home() {
     }
   }, [router.isReady, router.query.pinId, pins]);
 
+  const handlePinUpdate = (updatedPinData) => {
+    setPins(currentPins =>
+      currentPins.map(p =>
+        p.id === updatedPinData.id ? { ...p, ...updatedPinData } : p
+      )
+    );
+
+    if (selectedPin && selectedPin.id === updatedPinData.id) {
+      setSelectedPin(prev => ({ ...prev, ...updatedPinData }));
+    }
+  };
+
   const fetchAndSetPins = useCallback(async (pageNum, query, category) => {
     setLoading(true);
     setError(null);
@@ -166,6 +178,7 @@ export default function Home() {
                   pin={pin} 
                   index={index} 
                   ref={index === pins.length - 1 ? lastPinRef : null} 
+                  onPinUpdate={handlePinUpdate}
                 />
               </div>
             ))}
@@ -185,7 +198,8 @@ export default function Home() {
         <PinDetailModal 
           pin={selectedPin}
           isOpen={!!selectedPin} 
-          onClose={handleClosePinDetail} 
+          onClose={handleClosePinDetail}
+          onPinUpdate={handlePinUpdate} 
         />
       )}
       <PinCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPinCreated={handlePinCreated} />
