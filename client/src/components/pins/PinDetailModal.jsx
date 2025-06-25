@@ -11,7 +11,7 @@ import { FaHeart, FaRegHeart } from 'react-icons/fa';
 import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/solid';
 import { toast } from 'react-toastify'; 
 
-export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
+export default function PinDetailModal({ pin: initialPin, isOpen, onClose, onPinUpdate }) {
   const { user } = useAuth();
   
   const [pin, setPin] = useState(initialPin);
@@ -24,16 +24,19 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
+    setPin(initialPin);
+    setIsLiked(initialPin?.is_liked || false);
+    setLikeCount(initialPin?.like_count || 0);
+  }, [initialPin]);
+
+  useEffect(() => {
     if (!isOpen || !initialPin?.id) return;
 
     const fetchPinDetails = async () => {
       setLoading(true);
       try {
         const fullPinData = await getPinById(initialPin.id);
-        setPin(fullPinData);
-
-        setIsLiked(fullPinData.is_liked || false); 
-        setLikeCount(fullPinData.like_count || 0);
+        setPin(prevPin => ({ ...prevPin, ...fullPinData }));
 
         if (user && fullPinData.user) {
           setIsFollowing(fullPinData.user.is_following || false);
@@ -48,7 +51,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     };
 
     fetchPinDetails();
-  }, [initialPin, isOpen, onClose, user]);
+  }, [initialPin?.id, isOpen, user, onClose]);
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -69,26 +72,32 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
       e.preventDefault();
       if (!user) return;
   
-      const originalIsLiked = isLiked;
-      const originalLikeCount = likeCount;
-      setIsLiked(!originalIsLiked);
-      setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
+      const originalPinState = { ...pin };
+
+    setPin(p => ({
+        ...p,
+        is_liked: !p.is_liked,
+        like_count: p.is_liked ? (p.like_count || 0) - 1 : (p.like_count || 0) + 1,
+    }));
   
       try {
         const response = await toggleLikePin(pin.id);
-        if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
-          setIsLiked(response.liked);
-          setLikeCount(response.new_like_count);
+        if (response) {
+
+            onPinUpdate({
+                id: pin.id,
+                is_liked: response.liked,
+                like_count: response.new_like_count,
+            });
         }
       } catch (err) {
         console.error('Error toggling like:', err);
-        setIsLiked(originalIsLiked);
-        setLikeCount(originalLikeCount);
+        setPin(originalPinState); 
         toast.error("Gagal menyukai pin.");
       }
     };
 
-   const handleFollow = useCallback(async () => {
+    const handleFollow = useCallback(async () => {
     let isCurrentlyFollowing = isFollowing;
     if (!user) {
       toast.info("Silakan login untuk mengikuti pengguna.");
@@ -241,11 +250,12 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                 {user && (
                   <div className="flex-shrink-0 mt-auto pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center mb-3">
-                      <p className="text-lg font-bold">{pin.like_count || 0} Suka</p>
-                      <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
-                        {isLiked ? <FaHeart size={22} className="text-red-500" /> : <FaRegHeart size={22} />}
-                        <span className="text-xs">{likeCount}</span>
-                      </button>
+                      <p className="text-lg font-bold">{pin?.like_count || 0} Suka</p>
+                        <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
+                            {pin?.is_liked ? <FaHeart size={22} className="text-red-500" /> : <FaRegHeart size={22} />}
+    
+                            <span className="text-xs">{pin?.like_count || 0}</span>
+                        </button>
                     </div>
                     <form onSubmit={handleCommentSubmit} className="flex items-center space-x-2">
                       <div className="relative w-8 h-8 rounded-full overflow-hidden">

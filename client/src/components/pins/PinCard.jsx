@@ -37,10 +37,8 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
     e.preventDefault();
     if (!user) return;
 
-    const originalIsLiked = isLiked;
-    const originalLikeCount = likeCount;
-    setIsLiked(!originalIsLiked);
-    setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
+    setIsLiked(prev => !prev);
+    setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
 
     try {
       const response = await toggleLikePin(pin.id);
