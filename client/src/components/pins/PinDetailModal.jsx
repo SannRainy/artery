@@ -236,8 +236,9 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                   <div className="flex-shrink-0 mt-auto pt-4 border-t border-gray-200">
                     <div className="flex justify-between items-center mb-3">
                       <p className="text-lg font-bold">{pin.like_count || 0} Suka</p>
-                      <button onClick={handleLike} className="p-2 rounded-full hover:bg-gray-100">
-                        {pin.is_liked ? <FaHeart className="text-red-500 h-6 w-6" /> : <FaRegHeart className="h-6 w-6 text-gray-600" />}
+                      <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
+                        {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                        <span className="text-xs">{likeCount}</span>
                       </button>
                     </div>
                     <form onSubmit={handleCommentSubmit} className="flex items-center space-x-2">
