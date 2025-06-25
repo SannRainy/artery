@@ -28,7 +28,7 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
     };
     setUserProfile(optimisticUser);
     try {
-      const data = await toggleFollowUser(userProfile.id);
+      const data = await toggleFollowUser(userProfile.id, !isFollowing);
       setUserProfile(prev => ({
         ...prev,
         is_following: data.following,
