@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
-import { getPinById, addComment, likePin } from '../../services/pins';
+import { getPinById, addComment, toggleLikePin } from '../../services/pins';
 import { followUser } from '../../lib/api/profile';
 import { formatDate, getImageUrl } from '../../utils/helpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -59,15 +59,28 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     }
   }, [user]);
 
-  const handleLike = () => {
-    const originalPin = { ...pin };
-    setPin(p => ({
-      ...p,
-      is_liked: !p.is_liked,
-      like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1,
-    }));
-    handleAction(() => likePin(pin.id)).catch(() => setPin(originalPin));
-  };
+  const handleLike = async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!user) return;
+  
+      const originalIsLiked = isLiked;
+      const originalLikeCount = likeCount;
+      setIsLiked(!originalIsLiked);
+      setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
+  
+      try {
+        const response = await toggleLikePin(pin.id);
+        if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
+          setIsLiked(response.liked);
+          setLikeCount(response.new_like_count);
+        }
+      } catch (err) {
+        console.error('Error toggling like:', err);
+        setIsLiked(originalIsLiked);
+        setLikeCount(originalLikeCount);
+      }
+    };
 
    const handleFollow = useCallback(async () => {
     let isCurrentlyFollowing = isFollowing;
