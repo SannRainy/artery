@@ -10,14 +10,13 @@ export const getUserProfile = async (userId) => { //
   }
 };
 
-export const toggleFollowUser = async (userId) => {
+export const toggleFollow = async (userId) => {
   try {
-    const response = await api.post(`/users/${userId}/follow`, null, {
-      headers: getAuthHeaders(),
-    });
-    return response.data;
+    const { data } = await API.put(`/users/${userId}/toggle-follow`);
+    return data;
   } catch (error) {
-    throw handleAxiosError(error, 'Failed to update follow status');
+    console.error('Gagal follow/unfollow pengguna:', error);
+    throw error;
   }
 };
 
