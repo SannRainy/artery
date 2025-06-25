@@ -1,7 +1,5 @@
 // client/src/pages/index.js
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useInfiniteQuery, useMutation, useQueryClient } from 'react-query';
-import { toggleLikePin } from '../services/pins';
 import { useAuth } from '../contexts/AuthContexts';
 import { useRouter } from 'next/router';
 import Masonry from 'react-masonry-css';
@@ -42,18 +40,6 @@ export default function Home() {
       setSelectedPin(null);
     }
   }, [router.isReady, router.query.pinId, pins]);
-
-  const handlePinUpdate = (updatedPinData) => {
-    setPins(currentPins =>
-      currentPins.map(p =>
-        p.id === updatedPinData.id ? { ...p, ...updatedPinData } : p
-      )
-    );
-
-    if (selectedPin && selectedPin.id === updatedPinData.id) {
-      setSelectedPin(prev => ({ ...prev, ...updatedPinData }));
-    }
-  };
 
   const fetchAndSetPins = useCallback(async (pageNum, query, category) => {
     setLoading(true);
@@ -124,55 +110,6 @@ export default function Home() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore, searchQuery]);
 
-  const queryClient = useQueryClient();
-
-  const {
-    data,
-    fetchNextPage,
-  } = useInfiniteQuery('pins', getPins, {});
-
-  const { mutate: handleLikeMutation } = useMutation(
-    toggleLikePin,
-    {
-      onMutate: async (pinToUpdate) => {
-        await queryClient.cancelQueries('pins');
-
-        const previousPinsData = queryClient.getQueryData('pins');
-
-        queryClient.setQueryData('pins', (oldData) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            pages: oldData.pages.map(page => ({
-              ...page,
-              pins: page.pins.map(p =>
-                p.id === pinToUpdate.id
-                  ? {
-                      ...p,
-                      is_liked: !p.is_liked,
-                      like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1,
-                    }
-                  : p
-              ),
-            })),
-          };
-        });
-
-        return { previousPinsData };
-      },
-
-      onError: (err, variables, context) => {
-        if (context.previousPinsData) {
-          queryClient.setQueryData('pins', context.previousPinsData);
-        }
-      },
-      
-      onSettled: () => {
-        queryClient.invalidateQueries('pins');
-      },
-    }
-  );
-
   const handleOpenPinDetail = (pin) => {
     setSelectedPin(pin);
     router.push(`/?pinId=${pin.id}`, `/pins/${pin.id}`, { shallow: true });
@@ -229,7 +166,6 @@ export default function Home() {
                   pin={pin} 
                   index={index} 
                   ref={index === pins.length - 1 ? lastPinRef : null} 
-                  onLike={handleLikeMutation}
                 />
               </div>
             ))}
@@ -249,8 +185,7 @@ export default function Home() {
         <PinDetailModal 
           pin={selectedPin}
           isOpen={!!selectedPin} 
-          onClose={handleClosePinDetail}
-          onPinUpdate={handlePinUpdate} 
+          onClose={handleClosePinDetail} 
         />
       )}
       <PinCreateModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} onPinCreated={handlePinCreated} />
