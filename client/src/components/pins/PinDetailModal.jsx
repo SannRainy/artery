@@ -20,6 +20,8 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
   const [commentText, setCommentText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const commentsEndRef = useRef(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
 
   useEffect(() => {
     if (!isOpen || !initialPin?.id) return;
@@ -29,6 +31,9 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
       try {
         const fullPinData = await getPinById(initialPin.id);
         setPin(fullPinData);
+
+        setIsLiked(fullPinData.is_liked || false); 
+        setLikeCount(fullPinData.like_count || 0);
 
         if (user && fullPinData.user) {
           setIsFollowing(fullPinData.user.is_following || false);
@@ -79,6 +84,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
         console.error('Error toggling like:', err);
         setIsLiked(originalIsLiked);
         setLikeCount(originalLikeCount);
+        toast.error("Gagal menyukai pin.");
       }
     };
 
@@ -116,7 +122,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
     if (!user || !pin || !pin.user || !pin.user.id || user.id === pin.user.id) return;
 
     const originalIsFollowing = isFollowing;
-    setIsFollowing(false); 
+    setIsFollowing(false);  
 
     try {
       await followUser(pin.user.id); 
