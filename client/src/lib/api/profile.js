@@ -1,5 +1,6 @@
 import api from '../../services/api'; //
 import { handleApiError } from '../errorHandler'; //
+import API from '../../services/api';
 
 export const getUserProfile = async (userId) => { //
   try {
