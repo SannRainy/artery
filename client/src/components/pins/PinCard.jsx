@@ -1,3 +1,4 @@
+// client/src/components/pins/PinCard.jsx
 import { useState, useEffect, forwardRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContexts';
 import { toggleLikePin } from '../../services/pins';
@@ -5,13 +6,12 @@ import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 import { useInView } from '../../hooks/useInView';
 import { getImageUrl } from '../../utils/helpers';
 import Image from 'next/image';
-import { toast } from 'react-toastify';
 
-const PinCard = forwardRef(({ pin, index, onClick }, ref) => {
+const PinCard = forwardRef(({ pin, index }, ref) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
   const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
-  const [aspectRatio, setAspectRatio] = useState(3 / 4);
+  const [aspectRatio, setAspectRatio] = useState(3 / 4); // Default aspect ratio
 
   const [animationRef, isInView] = useInView({ threshold: 0.1, triggerOnce: true });
 
@@ -35,31 +35,28 @@ const PinCard = forwardRef(({ pin, index, onClick }, ref) => {
   const handleLike = async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    
-    if (!user) {
-      toast.info('Anda harus login untuk menyukai pin.');
-      return;
-    }
+    if (!user) return;
 
     const originalIsLiked = isLiked;
     const originalLikeCount = likeCount;
-
     setIsLiked(!originalIsLiked);
     setLikeCount(prevCount => originalIsLiked ? prevCount - 1 : prevCount + 1);
 
     try {
       const response = await toggleLikePin(pin.id);
-      setIsLiked(response.is_liked);
-      setLikeCount(response.like_count);
+      if (response && typeof response.liked === 'boolean' && typeof response.new_like_count === 'number') {
+        setIsLiked(response.liked);
+        setLikeCount(response.new_like_count);
+      }
     } catch (err) {
       console.error('Error toggling like:', err);
-      toast.error('Gagal menyukai pin.');
       setIsLiked(originalIsLiked);
       setLikeCount(originalLikeCount);
     }
   };
 
-  if (!pin || !pin.user) return null;
+  if (!pin) return null;
+  const pinUser = pin.user || {};
 
   return (
     <div
@@ -68,10 +65,10 @@ const PinCard = forwardRef(({ pin, index, onClick }, ref) => {
         isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{ transitionDelay: `${(index % 20) * 50}ms` }}
-      onClick={onClick}
     >
       <div className="group cursor-zoom-in rounded-2xl overflow-hidden bg-white relative shadow-sm hover:shadow-lg transition-shadow">
         <div className="relative">
+
           <Image
             src={getImageUrl(pin.image_url)}
             alt={pin.title || 'Pin image'}
@@ -82,13 +79,14 @@ const PinCard = forwardRef(({ pin, index, onClick }, ref) => {
             onLoad={({ target }) => {
               const { naturalWidth, naturalHeight } = target;
               if (naturalWidth > 0 && naturalHeight > 0) {
-                  setAspectRatio(naturalWidth / naturalHeight);
+                 setAspectRatio(naturalWidth / naturalHeight);
               }
             }}
             style={{ aspectRatio: aspectRatio }}
           />
+          {/* -------------------------------------------------------- */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-              <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
+             <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
           </div>
         </div>
 
@@ -97,13 +95,13 @@ const PinCard = forwardRef(({ pin, index, onClick }, ref) => {
             <div className="flex items-center space-x-2 group">
               <div className="relative w-6 h-6 rounded-full overflow-hidden">
                   <Image
-                    src={getImageUrl(pin.user.avatar_url, '/img/default-avatar.png')}
-                    alt={pin.user.username || 'User avatar'}
+                    src={getImageUrl(pinUser.avatar_url, '/img/default-avatar.png')}
+                    alt={pinUser.username || 'User avatar'}
                     layout="fill"
                     objectFit="cover"
                   />
               </div>
-              <span className="text-xs font-medium text-gray-700">{pin.user.username || 'Anonymous'}</span>
+              <span className="text-xs font-medium text-gray-700">{pinUser.username || 'Anonymous'}</span>
             </div>
             
             <div className="flex items-center space-x-3">

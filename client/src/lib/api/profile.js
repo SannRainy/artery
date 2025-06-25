@@ -1,6 +1,5 @@
 import api from '../../services/api'; //
 import { handleApiError } from '../errorHandler'; //
-import API from '../../services/api';
 
 export const getUserProfile = async (userId) => { //
   try {
@@ -11,13 +10,14 @@ export const getUserProfile = async (userId) => { //
   }
 };
 
-export const toggleFollow = async (userId) => {
+export const toggleFollowUser = async (userId) => {
   try {
-    const { data } = await API.post(`/users/${userId}/toggle-follow`);
-    return data;
+    const response = await api.post(`/users/${userId}/follow`, null, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
   } catch (error) {
-    console.error('Gagal follow/unfollow pengguna:', error);
-    throw error;
+    throw handleAxiosError(error, 'Failed to update follow status');
   }
 };
 

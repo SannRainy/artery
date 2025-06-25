@@ -455,7 +455,7 @@ module.exports = function (db) {
   });
 
 
-  router.post('/:id/toggle-follow', authenticate, async (req, res) => {
+  router.post('/:id/follow', authenticate, async (req, res) => {
     const requestId = req.requestId;
     const timestamp = new Date().toISOString();
     try {
