@@ -1,13 +1,14 @@
 // client/src/pages/index.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useInfiniteQuery, useMutation, useQueryClient } from 'react-query';
+import { toggleLikePin } from '../services/pins';
 import { useAuth } from '../contexts/AuthContexts';
 import { useRouter } from 'next/router';
 import Masonry from 'react-masonry-css';
 import PinCard from '../components/pins/PinCard';
 import PinCreateModal from '../components/pins/PinCreateModal';
 import PinDetailModal from '../components/pins/PinDetailModal';
-import { getPins, searchPins, toggleLikePin } from '../services/pins';
+import { getPins, searchPins } from '../services/pins';
 import Header from '../components/layout/Header';
 import debounce from 'lodash.debounce';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
@@ -16,63 +17,136 @@ import SearchHero from '../components/layout/SearchHero';
 export default function Home() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const queryClient = useQueryClient();
+
+  const [pins, setPins] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [activeCategory, setActiveCategory] = useState('Semua');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedPin, setSelectedPin] = useState(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   const categories = ['Semua', 'Pixel char', 'Illustration', 'Sketsa anime', 'Sketsa', 'Ilustrasi karakter'];
 
+  const [selectedPin, setSelectedPin] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (router.isReady && router.query.pinId) {
+      const pinId = parseInt(router.query.pinId, 10);
+      const pinToOpen = pins.find(p => p.id === pinId) || { id: pinId };
+      setSelectedPin(pinToOpen);
+    } else if (router.isReady && !router.query.pinId) {
+      setSelectedPin(null);
+    }
+  }, [router.isReady, router.query.pinId, pins]);
+
+  const handlePinUpdate = (updatedPinData) => {
+    setPins(currentPins =>
+      currentPins.map(p =>
+        p.id === updatedPinData.id ? { ...p, ...updatedPinData } : p
+      )
+    );
+
+    if (selectedPin && selectedPin.id === updatedPinData.id) {
+      setSelectedPin(prev => ({ ...prev, ...updatedPinData }));
+    }
+  };
+
+  const fetchAndSetPins = useCallback(async (pageNum, query, category) => {
+    setLoading(true);
+    setError(null);
+
+    const isAppending = pageNum > 1 && !query && category === activeCategory;
+
+    try {
+      const categoryToSend = category === 'Semua' ? '' : category;
+      const response = query
+        ? await searchPins(query, pageNum)
+        : await getPins({ page: pageNum, category: categoryToSend });
+
+      const newPins = response?.data || [];
+      const pagination = response?.pagination;
+
+      if (isAppending) {
+        setPins(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const uniqueNewPins = newPins.filter(p => !existingIds.has(p.id));
+          return [...prev, ...uniqueNewPins];
+        });
+      } else {
+        setPins(newPins);
+      }
+
+      setHasMore(pagination ? pageNum < pagination.totalPages : newPins.length > 0);
+    } catch (err) {
+      console.error('Failed to fetch pins:', err);
+      setError('Gagal memuat pin.');
+      setHasMore(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCategory]);
+
+  useEffect(() => {
+    fetchAndSetPins(page, searchQuery, activeCategory);
+  }, [page, searchQuery, activeCategory, fetchAndSetPins]);
+
+  const handleCategoryClick = (category) => {
+    if (activeCategory !== category) {
+      setSearchQuery('');
+      setPins([]);
+      setPage(1);
+      setHasMore(true);
+      setActiveCategory(category);
+    }
+  };
+  
+  const debouncedSearch = useCallback(debounce((query) => {
+    setActiveCategory('Semua');
+    setPins([]);
+    setPage(1);
+    setHasMore(true);
+    setSearchQuery(query);
+  }, 500), []);
+
+  const observer = useRef();
+  const lastPinRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore && !searchQuery) {
+        setPage(prevPage => prevPage + 1);
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore, searchQuery]);
+
+  const queryClient = useQueryClient();
+
   const {
     data,
-    error,
     fetchNextPage,
-    hasNextPage,
-    isLoading,
-    isError,
-    isFetchingNextPage,
-  } = useInfiniteQuery(
-    ['pins', activeCategory, searchQuery], 
-    async ({ pageParam = 1 }) => {
-
-      const categoryToSend = activeCategory === 'Semua' ? '' : activeCategory;
-      const response = searchQuery
-        ? await searchPins(searchQuery, pageParam)
-        : await getPins({ page: pageParam, category: categoryToSend });
-      return response; 
-    },
-    {
-      getNextPageParam: (lastPage, allPages) => {
-        const currentPage = lastPage.pagination?.currentPage;
-        const totalPages = lastPage.pagination?.totalPages;
-        if (currentPage && currentPage < totalPages) {
-          return currentPage + 1;
-        }
-        return undefined; 
-      },
-    }
-  );
-
-  const pins = data?.pages.flatMap(page => page.data) ?? [];
+  } = useInfiniteQuery('pins', getPins, {});
 
   const { mutate: handleLikeMutation } = useMutation(
     toggleLikePin,
     {
-      onMutate: async (pinId) => {
-        const queryKey = ['pins', activeCategory, searchQuery];
-        await queryClient.cancelQueries(queryKey);
-        const previousData = queryClient.getQueryData(queryKey);
+      onMutate: async (pinToUpdate) => {
+        await queryClient.cancelQueries('pins');
 
-        queryClient.setQueryData(queryKey, (oldData) => {
+        const previousPinsData = queryClient.getQueryData('pins');
+
+        queryClient.setQueryData('pins', (oldData) => {
           if (!oldData) return oldData;
           return {
             ...oldData,
             pages: oldData.pages.map(page => ({
               ...page,
-              data: page.data.map(p =>
-                p.id === pinId
+              pins: page.pins.map(p =>
+                p.id === pinToUpdate.id
                   ? {
                       ...p,
                       is_liked: !p.is_liked,
@@ -83,74 +157,21 @@ export default function Home() {
             })),
           };
         });
-        return { previousData };
-      },
-      onError: (err, pinId, context) => {
 
-        const queryKey = ['pins', activeCategory, searchQuery];
-        queryClient.setQueryData(queryKey, context.previousData);
+        return { previousPinsData };
       },
+
+      onError: (err, variables, context) => {
+        if (context.previousPinsData) {
+          queryClient.setQueryData('pins', context.previousPinsData);
+        }
+      },
+      
       onSettled: () => {
-
-        const queryKey = ['pins', activeCategory, searchQuery];
-        queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries('pins');
       },
     }
   );
-
-  const handlePinUpdate = (updatedPinData) => {
-    const queryKey = ['pins', activeCategory, searchQuery];
-    queryClient.setQueryData(queryKey, (oldData) => {
-       if (!oldData) return oldData;
-        return {
-          ...oldData,
-          pages: oldData.pages.map(page => ({
-            ...page,
-            data: page.data.map(p =>
-              p.id === updatedPinData.id ? { ...p, ...updatedPinData } : p
-            ),
-          })),
-        };
-    });
-  };
-
-  const observer = useRef();
-  const lastPinRef = useCallback(node => {
-    if (isFetchingNextPage) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasNextPage) {
-        fetchNextPage();
-      }
-    });
-    if (node) observer.current.observe(node);
-  }, [isFetchingNextPage, hasNextPage, fetchNextPage]);
-
-  useEffect(() => {
-    if (router.isReady && router.query.pinId) {
-      const pinId = parseInt(router.query.pinId, 10);
-      if (pins.length > 0) {
-        const pinToOpen = pins.find(p => p.id === pinId);
-        setSelectedPin(pinToOpen || { id: pinId });
-      } else {
-        setSelectedPin({ id: pinId });
-      }
-    } else if (router.isReady && !router.query.pinId) {
-      setSelectedPin(null);
-    }
-  }, [router.isReady, router.query.pinId, pins]);
-
-  const handleCategoryClick = (category) => {
-    if (activeCategory !== category) {
-      setSearchQuery('');
-      setActiveCategory(category);
-    }
-  };
-  
-  const debouncedSearch = useCallback(debounce((query) => {
-    setActiveCategory('Semua');
-    setSearchQuery(query);
-  }, 500), []);
 
   const handleOpenPinDetail = (pin) => {
     setSelectedPin(pin);
@@ -163,7 +184,7 @@ export default function Home() {
   };
 
   const handlePinCreated = (newPin) => {
-    queryClient.invalidateQueries(['pins', activeCategory, searchQuery]);
+    setPins(prev => [newPin, ...prev]);
   };
 
   const breakpointColumnsObj = { default: 5, 1280: 4, 1024: 3, 768: 2, 640: 2 };
@@ -190,10 +211,10 @@ export default function Home() {
           </div>
         </div>
         
-        {isLoading ? (
+        {(loading && pins.length === 0) ? (
           <div className="text-center py-10"><LoadingSpinner /></div>
-        ) : isError ? (
-          <div className="text-center py-10 text-red-500">{error.message}</div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">{error}</div>
         ) : pins.length === 0 ? (
           <div className="text-center py-10 text-gray-500">Tidak ada pin untuk ditampilkan.</div>
         ) : (
@@ -208,16 +229,16 @@ export default function Home() {
                   pin={pin} 
                   index={index} 
                   ref={index === pins.length - 1 ? lastPinRef : null} 
-                  onLike={() => handleLikeMutation(pin.id)}
+                  onLike={handleLikeMutation}
                 />
               </div>
             ))}
           </Masonry>
         )}
 
-        {isFetchingNextPage && <div className="text-center py-8"><LoadingSpinner /></div>}
+        {loading && pins.length > 0 && <div className="text-center py-8"><LoadingSpinner /></div>}
         
-        {!hasNextPage && pins.length > 0 && (
+        {!hasMore && pins.length > 0 && (
           <div className="text-center py-10 text-gray-400 text-sm">
             <p>Anda telah melihat semua pin.</p>
           </div>
