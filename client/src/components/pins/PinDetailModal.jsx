@@ -243,7 +243,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
                     <div className="flex justify-between items-center mb-3">
                       <p className="text-lg font-bold">{pin.like_count || 0} Suka</p>
                       <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
-                        {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                        {isLiked ? <FaHeart size={22} className="text-red-500" /> : <FaRegHeart size={22} />}
                         <span className="text-xs">{likeCount}</span>
                       </button>
                     </div>
