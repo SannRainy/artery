@@ -13,7 +13,7 @@ export const getUserProfile = async (userId) => { //
 
 export const toggleFollow = async (userId) => {
   try {
-    const { data } = await API.put(`/users/${userId}/toggle-follow`);
+    const { data } = await API.post(`/users/${userId}/toggle-follow`);
     return data;
   } catch (error) {
     console.error('Gagal follow/unfollow pengguna:', error);
