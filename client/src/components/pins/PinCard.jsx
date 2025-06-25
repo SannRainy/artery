@@ -1,17 +1,13 @@
 // client/src/components/pins/PinCard.jsx
-import { useState, useEffect, forwardRef, useCallback } from 'react';
+import { forwardRef, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContexts';
-import { toggleLikePin } from '../../services/pins';
 import { FaHeart, FaRegHeart, FaComment } from 'react-icons/fa';
 import { useInView } from '../../hooks/useInView';
 import { getImageUrl } from '../../utils/helpers';
 import Image from 'next/image';
 
-const PinCard = forwardRef(({ pin, index }, ref) => {
+const PinCard = forwardRef(({ pin, index, onLike }, ref) => {
   const { user } = useAuth();
-  const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
-  const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
-  const [aspectRatio, setAspectRatio] = useState(3 / 4); // Default aspect ratio
 
   const [animationRef, isInView] = useInView({ threshold: 0.1, triggerOnce: true });
 
@@ -27,32 +23,13 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
     [animationRef, ref]
   );
   
-  useEffect(() => {
-    setIsLiked(pin?.is_liked || false);
-    setLikeCount(pin?.like_count || 0);
-  }, [pin.is_liked, pin.like_count]); 
-
   const handleLike = async (e) => {
     e.stopPropagation();
     e.preventDefault();
     if (!user) return;
 
-    setIsLiked(prev => !prev);
-    setLikeCount(prev => (isLiked ? prev - 1 : prev + 1));
-
-    try {
-      const response = await toggleLikePin(pin.id);
-      if (response ){ 
-        onPinUpdate({
-          id: pin.id,
-          is_liked: response.liked,
-          like_count: response.new_like_count,
-        });
-      }
-    } catch (err) {
-      setIsLiked(pin.is_liked);
-      setLikeCount(pin.like_count);
-      console.error('Error toggling like:', err);
+    if (onLike) {
+      onLike(pin);
     }
   };
 
@@ -85,9 +62,9 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             }}
             style={{ aspectRatio: aspectRatio }}
           />
-          {/* -------------------------------------------------------- */}
+
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
-             <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
+              <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
           </div>
         </div>
 
@@ -107,8 +84,8 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             
             <div className="flex items-center space-x-3">
               <button onClick={handleLike} disabled={!user} className={`flex items-center space-x-1 ${!user ? 'opacity-50' : 'text-gray-500 hover:text-red-500'}`}>
-                {isLiked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
-                <span className="text-xs">{likeCount}</span>
+                {pin.is_liked ? <FaHeart className="text-red-500" /> : <FaRegHeart />}
+                <span className="text-xs">{pin.like_count}</span>
               </button>
               <div className="flex items-center space-x-1 text-gray-500">
                 <FaComment />
