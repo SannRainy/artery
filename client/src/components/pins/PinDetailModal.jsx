@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
-import { getPinById, addComment, likePin } from '../../services/pins';
+import { getPinById, addComment, toggleLikePin } from '../../services/pins';
 import { followUser } from '../../lib/api/profile';
 import { formatDate, getImageUrl } from '../../utils/helpers';
 import LoadingSpinner from '../ui/LoadingSpinner';
@@ -66,7 +66,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
       is_liked: !p.is_liked,
       like_count: p.is_liked ? p.like_count - 1 : p.like_count + 1,
     }));
-    handleAction(() => likePin(pin.id)).catch(() => setPin(originalPin));
+    handleAction(() => toggleLikePin(pin.id)).catch(() => setPin(originalPin));
   };
 
    const handleFollow = useCallback(async () => {
@@ -136,7 +136,7 @@ export default function PinDetailModal({ pin: initialPin, isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  const currentUserAvatar = getImageUrl(user?.avatar_url || '/img/default-avatar.png');
+  const currentUserAvatar = getImageUrl(user?.avatar_url || 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/avatars/default-avatar.gif');
 
   return (
     <div className="fixed inset-0 z-50 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center" onClick={onClose}>

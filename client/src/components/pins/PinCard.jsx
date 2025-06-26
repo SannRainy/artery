@@ -11,7 +11,7 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(pin?.is_liked || false);
   const [likeCount, setLikeCount] = useState(pin?.like_count || 0);
-  const [aspectRatio, setAspectRatio] = useState(3 / 4); // Default aspect ratio
+  const [aspectRatio, setAspectRatio] = useState(3 / 4);
 
   const [animationRef, isInView] = useInView({ threshold: 0.1, triggerOnce: true });
 
@@ -84,7 +84,6 @@ const PinCard = forwardRef(({ pin, index }, ref) => {
             }}
             style={{ aspectRatio: aspectRatio }}
           />
-          {/* -------------------------------------------------------- */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
              <h3 className="text-white font-semibold text-md drop-shadow-md line-clamp-2">{pin.title}</h3>
           </div>
