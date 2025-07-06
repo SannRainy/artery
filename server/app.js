@@ -41,8 +41,22 @@ app.use((req, res, next) => {
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 // CORS configuration (sebelum routes)
+const allowedOrigins = [
+  'http://localhost:3001', // Untuk development di komputer Anda
+  'https://arteryproject-sannrainys-projects.vercel.app', // URL lama Vercel
+  'https://www.arteryproject.me', // Domain kustom Anda dengan www
+  'https://arteryproject.me' // Domain kustom Anda tanpa www
+];
+
 const generalCorsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001', // Sesuaikan dengan port frontend Anda
+  origin: function (origin, callback) {
+    // Izinkan jika origin ada di dalam daftar, atau jika tidak ada origin (misal: request dari Postman)
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // OPTIONS penting untuk preflight requests
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true // Jika Anda menggunakan cookies atau session
