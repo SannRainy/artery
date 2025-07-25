@@ -17,8 +17,8 @@ const ProfileSidebar = ({ user, activeTab, setActiveTab }) => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 sticky top-24">
-      <div className="space-y-1">
+    <div className="bg-white rounded-lg border border-gray-110 shadow p-4">
+      <div className="space-y-2">
         {tabs.map((tab) => ( 
           <button
             key={tab.id} 

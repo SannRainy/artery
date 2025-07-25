@@ -36,7 +36,7 @@ function SettingsPageLayout({ user, activeTab, onLogout, children }) {
         <title>{`Settings - ${activeTab}`} | Artery</title>
       </Head>
 
-      <div className="min-h-screen bg-gray-50 pt-24">
+      <div className=" bg-gray-50 pt-2">
         <main className="container mx-auto max-w-6xl px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             

@@ -4,14 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../contexts/AuthContexts';
 import { FiPlus, FiBell, FiMessageSquare, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
-import { getImageUrl } from '../../utils/helpers';
+import { getImageUrl, getDefaultAvatarUrl} from '../../utils/helpers';
 
 export default function Header({ onCreateClick }) {
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  const defaultAvatarUrl = 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/uploads/default-avatar.png';
-  const avatarSrc = getImageUrl(user?.avatar_url || defaultAvatarUrl);
+  const avatarSrc = getImageUrl(user?.avatar_url || getDefaultAvatarUrl());
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white shadow-sm z-50">

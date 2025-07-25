@@ -41,7 +41,7 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
   };
 
   return (  
-    <div className="bg-white shadow-sm p-4 md:p-6 rounded-lg">
+    <div className="bg-white shadow-sm p-4 md:p-4 w-[89%] my-4 mx-auto rounded-lg border border-gray-110">
       <div className="flex flex-col sm:flex-row items-center sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
         <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden flex-shrink-0">
           <Image

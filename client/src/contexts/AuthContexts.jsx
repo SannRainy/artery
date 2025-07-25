@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('token')
     setUser(null)
-    router.push('/login')
+    router.push('/')
   }, [router])
 
   const value = {

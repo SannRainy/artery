@@ -39,7 +39,7 @@ const ProfileContent = ({ userId, activeTab, onPinClick }) => {
   if (loading) return <div className="text-center py-8"><LoadingSpinner /></div>;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 md:p-6">
+    <div className="bg-white rounded-lg border border-gray-110 shadow p-4 md:p-6 w-[99.2%]">
       
       {activeTab === 'pins' && <UserPins pins={content} onPinClick={onPinClick} />}
       {activeTab === 'activity' && <UserActivity activities={content} />}

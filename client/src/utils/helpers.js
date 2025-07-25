@@ -61,3 +61,10 @@ export const getPinterestLayout = (items = [], columns = 4) => {
   })
   return result
 }
+
+export function getDefaultAvatarUrl() {
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/uploads/default-avatar.png';
+  }
+  return `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/uploads/default-avatar.png`;
+}
