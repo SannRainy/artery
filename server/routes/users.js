@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const multer = require('multer'); 
 const jwt = require('jsonwebtoken');
 const path = require('path');    
-const fs = require('fs');        
+const fs = require('fs');
 const { authenticate } = require('../middleware/auth');
 const supabase = require('../utils/supabaseClient');
 const sendEmail = require('../utils/email');
@@ -28,81 +28,64 @@ const uploadAvatar = multer({
 module.exports = function (db) {
   const router = express.Router();
 
-  // ✅ REGISTER
-  router.post('/register', async (req, res) => {
-    const requestId = req.requestId;
-    const timestamp = new Date().toISOString();
+router.post('/register', async (req, res, next) => { 
+  const requestId = req.requestId;
+  const timestamp = new Date().toISOString();
 
-    try {
-      const { username, email, password } = req.body;
-      if (!username || !email || !password) {
-        return res.status(400).json({ error: { message: 'Missing required fields', requestId, timestamp }});
-      }
-      const existingUser = await db('users').where({ email }).orWhere({ username }).first();
-      if (existingUser) {
-        return res.status(400).json({ error: { message: 'User already exists', requestId, timestamp }});
-      }
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const [userIdResult] = await db('users').insert({ // Knex insert mengembalikan array dengan ID
-        username,
-        email,
-        password_hash: hashedPassword,
-        is_verified: false,
-        avatar_url: 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/avatars/default-avatar.gif', 
-        bio: '',
-        created_at: db.fn.now(),
-        updated_at: db.fn.now()
-      }).returning('id');
-
-
-      const userId = userIdResult.id || userIdResult;
-
-      if (!userId) {
-          console.error(`[${requestId}] User registration failed, could not retrieve userId.`);
-          return res.status(500).json({ error: { message: 'User registration failed.', requestId, timestamp } });
-      }
-      
-      const user = await db('users')
-        .where({ id: userId })
-        .select('id', 'username', 'email', 'avatar_url', 'bio', 'created_at')
-        .first();
-
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      const tokenExpires = new Date(Date.now() + 3600000);
-
-      await db('users').where({ id: userId }).update({
-        verification_token: verificationToken,
-        verification_token_expires: tokenExpires,
-      });
-
-      const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-      try {
-        await sendEmail({
-                    to: email,
-                    subject: 'Verifikasi Akun Artery Anda',
-                    html: `
-                        <h1>Selamat Datang di Artery!</h1>
-                        <p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p>
-                        <a href="${verificationUrl}">${verificationUrl}</a>
-                        <p>Link ini akan kedaluwarsa dalam 1 jam.</p>
-                    `
-                });
-      } catch (emailError) {
-        console.error("Gagal mengirim email verifikasi:", emailError);
-      }
-
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-      res.json({ user, token });
-    } catch (err) {
-      console.error(`[${requestId}] Register error:`, err);
-      res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});
+  try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: { message: 'Missing required fields', requestId, timestamp }});
     }
-      res.status(201).json({ 
+
+    const existingUser = await db('users').where({ email }).orWhere({ username }).first();
+    if (existingUser) {
+      return res.status(400).json({ error: { message: 'User already exists', requestId, timestamp }});
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [userIdResult] = await db('users').insert({
+      username,
+      email,
+      password_hash: hashedPassword,
+      is_verified: false,
+      avatar_url: 'https://weuskrczzjbswnpsgbmp.supabase.co/storage/v1/object/public/avatars/default-avatar.gif',
+      bio: '',
+    }).returning('id');
+
+    const userId = userIdResult.id || userIdResult;
+
+    if (!userId) {
+      throw new Error('User registration failed, could not retrieve userId.');
+    }
+    
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpires = new Date(Date.now() + 3600000);
+
+    await db('users').where({ id: userId }).update({
+      verification_token: verificationToken,
+      verification_token_expires: tokenExpires,
+    });
+
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+    sendEmail({
+        to: email,
+        subject: 'Verifikasi Akun Artery Anda',
+        html: `<h1>Selamat Datang di Artery!</h1><p>Silakan klik link di bawah ini untuk memverifikasi email Anda:</p><a href="${verificationUrl}">${verificationUrl}</a><p>Link ini akan kedaluwarsa dalam 1 jam.</p>`
+    }).catch(emailError => {
+        console.error(`[${requestId}] Failed to send verification email to ${email}:`, emailError);
+    });
+
+    return res.status(201).json({ 
       success: true, 
       message: 'Registrasi berhasil. Silakan cek email Anda untuk verifikasi.' 
     });
-  });
 
+  } catch (err) {
+    console.error(`[${requestId}] Register error:`, err);
+    return res.status(500).json({ error: { message: 'Internal server error', requestId, timestamp }});
+  }
+});
   router.post('/resend-verification', async (req, res) => {
     const { email } = req.body;
 

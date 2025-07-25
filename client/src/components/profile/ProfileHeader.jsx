@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContexts';
 import Button from '../ui/Button';
 import { getImageUrl } from '../../utils/helpers';
 import { toggleFollowUser } from '../../lib/api/profile';
-import { FiHome, FiEdit2 } from 'react-icons/fi';
+import { FiHome, FiEdit2, FiUserPlus, FiUserCheck } from 'react-icons/fi';
 
 const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
   const { user: currentUser } = useAuth();
@@ -76,7 +76,7 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
           {isCurrentUser ? (
             <div className="flex items-center space-x-2">
               <Link href="/" passHref>
-                <Button as="a" variant="light-outline">
+                <Button variant="light-outline">
                   <FiHome className="w-4 h-4 mr-2" />
                   Beranda
                 </Button>
@@ -87,13 +87,26 @@ const ProfileHeader = ({ userProfile, setUserProfile, onEdit }) => {
               </Button>
             </div>
           ) : (
+            <div className="flex items-center space-x-2">
+              <Link href="/" passHref>
+                <Button variant="light-outline">
+                  <FiHome className="w-4 h-4 mr-2" />
+                  Beranda
+                </Button>
+              </Link>
             <Button
-              variant={isFollowing ? 'secondary' : 'primary'}
-              onClick={handleToggleFollow}
-              disabled={!currentUser}
-            >
-              {isFollowing ? 'Following' : 'Follow'}
-            </Button>
+            variant={isFollowing ? 'danger-outline' : 'danger'}
+            onClick={handleToggleFollow}
+            disabled={!currentUser}
+          >
+            {isFollowing ? (
+              <FiUserCheck className="w-4 h-4 mr-2" />
+            ) : (
+              <FiUserPlus className="w-4 h-4 mr-2" />
+            )}
+            {isFollowing ? 'Following' : 'Follow'}
+          </Button>
+            </div>
           )}
         </div>
       </div>

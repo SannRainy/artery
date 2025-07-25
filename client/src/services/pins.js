@@ -7,9 +7,16 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-export const followUser = (userId) => {
-  return api.post(`/users/${userId}/follow`);
-}
+export const toggleFollowUser = async (userId) => {
+  try {
+    const response = await api.post(`/users/${userId}/follow`, null, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
 
 export const createPin = async (formData) => {
   try {

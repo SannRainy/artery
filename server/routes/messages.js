@@ -6,6 +6,8 @@ module.exports = function (db) {
   const router = express.Router();
   router.use(authenticate); 
 
+  
+
   router.post('/initiate', async (req, res) => {
     const { recipientId } = req.body;
     const senderId = req.user.id;

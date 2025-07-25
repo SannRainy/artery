@@ -3,7 +3,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { authenticate } = require('../middleware/auth.js');
+const { authenticate, optionalAuth } = require('../middleware/auth');
+
 const supabase = require('../utils/supabaseClient');
 
 // Konfigurasi Multer (sudah benar, menggunakan memori)
@@ -356,13 +357,11 @@ module.exports = function (db) {
     }
   });
 
-  // --- GET /pins/:id - Mengambil detail satu pin ---
-  // PASTIKAN 'authenticate' ADA DI SINI untuk 'is_liked'
-  router.get('/:id', authenticate, async (req, res) => {
-    const { id: pinIdFromParams } = req.params; // Ganti nama agar jelas
+  router.get('/:id', optionalAuth, async (req, res) => {
+    const { id: pinIdFromParams } = req.params; 
     const requestId = req.requestId || `req-${Date.now()}`;
     const timestamp = new Date().toISOString();
-    const currentAuthenticatedUserId = req.user ? req.user.id : null; // req.user dari middleware authenticate
+    const currentAuthenticatedUserId = req.user ? req.user.id : null;
 
     try {
       const pinData = await db('pins as p')
@@ -371,7 +370,7 @@ module.exports = function (db) {
         .select(...pinBasicColumns, 'u.username as user_username', 'u.avatar_url as user_avatar_url')
         .first();
       if (!pinData) return res.status(404).json({ error: { message: 'Pin not found', requestId, timestamp } });
-
+      
       const tags = await db('pin_tags').join('tags', 'pin_tags.tag_id', 'tags.id')
                     .where('pin_tags.pin_id', pinIdFromParams).select('tags.id', 'tags.name');
       
