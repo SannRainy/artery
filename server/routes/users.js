@@ -5,8 +5,8 @@ const crypto = require('crypto');
 const multer = require('multer'); 
 const jwt = require('jsonwebtoken');
 const path = require('path');    
-const fs = require('fs');
-const { authenticate } = require('../middleware/auth');
+const fs = require('fs');   
+const { authenticate, optionalAuth } = require('../middleware/auth');
 const supabase = require('../utils/supabaseClient');
 const sendEmail = require('../utils/email');
 
@@ -211,7 +211,7 @@ router.post('/register', async (req, res, next) => {
   });
 
 
-  router.get('/search', authenticate, async (req, res) => {
+  router.get('/search', optionalAuth, async (req, res) => {
     const { q = '' } = req.query; // q adalah query pencarian
     const currentUserId = req.user.id;
 
@@ -236,7 +236,7 @@ router.post('/register', async (req, res, next) => {
   });
 
   // ✅ GET USER PROFILE
-  router.get('/:id', authenticate, async (req, res) => {
+  router.get('/:id', optionalAuth, async (req, res) => {
     const { id } = req.params;
     const currentUserId = req.user.id;
     const requestId = req.requestId;

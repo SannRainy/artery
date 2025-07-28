@@ -4,7 +4,7 @@
 
   exports.authenticate = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const requestId = req.requestId;        
+    const requestId = req.requestId;
     const timestamp = new Date().toISOString();
 
 
